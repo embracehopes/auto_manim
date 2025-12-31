@@ -1,0 +1,86 @@
+D:\Python312\Lib\site-packages\manimlib\animation\animation.py:class Animation(object):
+D:\Python312\Lib\site-packages\manimlib\animation\animation.py:        self.name = name or self.__class__.__name__ + str(self.mobject)
+D:\Python312\Lib\site-packages\manimlib\animation\animation.py:        # Typically ipmlemented by subclass
+D:\Python312\Lib\site-packages\manimlib\animation\composition.py:class AnimationGroup(Animation):
+D:\Python312\Lib\site-packages\manimlib\animation\composition.py:class Succession(AnimationGroup):
+D:\Python312\Lib\site-packages\manimlib\animation\composition.py:class LaggedStart(AnimationGroup):
+D:\Python312\Lib\site-packages\manimlib\animation\composition.py:class LaggedStartMap(LaggedStart):
+D:\Python312\Lib\site-packages\manimlib\animation\creation.py:class ShowPartial(Animation, ABC):
+D:\Python312\Lib\site-packages\manimlib\animation\creation.py:    Abstract class for ShowCreation and ShowPassingFlash
+D:\Python312\Lib\site-packages\manimlib\animation\creation.py:class ShowCreation(ShowPartial):
+D:\Python312\Lib\site-packages\manimlib\animation\creation.py:class Uncreate(ShowCreation):
+D:\Python312\Lib\site-packages\manimlib\animation\creation.py:class DrawBorderThenFill(Animation):
+D:\Python312\Lib\site-packages\manimlib\animation\creation.py:class Write(DrawBorderThenFill):
+D:\Python312\Lib\site-packages\manimlib\animation\creation.py:class ShowIncreasingSubsets(Animation):
+D:\Python312\Lib\site-packages\manimlib\animation\creation.py:class ShowSubmobjectsOneByOne(ShowIncreasingSubsets):
+D:\Python312\Lib\site-packages\manimlib\animation\creation.py:class AddTextWordByWord(ShowIncreasingSubsets):
+D:\Python312\Lib\site-packages\manimlib\animation\fading.py:class Fade(Transform):
+D:\Python312\Lib\site-packages\manimlib\animation\fading.py:class FadeIn(Fade):
+D:\Python312\Lib\site-packages\manimlib\animation\fading.py:class FadeOut(Fade):
+D:\Python312\Lib\site-packages\manimlib\animation\fading.py:class FadeInFromPoint(FadeIn):
+D:\Python312\Lib\site-packages\manimlib\animation\fading.py:class FadeOutToPoint(FadeOut):
+D:\Python312\Lib\site-packages\manimlib\animation\fading.py:class FadeTransform(Transform):
+D:\Python312\Lib\site-packages\manimlib\animation\fading.py:        super().__init__(mobject.get_group_class()(mobject, target_mobject.copy()), **kwargs)
+D:\Python312\Lib\site-packages\manimlib\animation\fading.py:class FadeTransformPieces(FadeTransform):
+D:\Python312\Lib\site-packages\manimlib\animation\fading.py:class VFadeIn(Animation):
+D:\Python312\Lib\site-packages\manimlib\animation\fading.py:class VFadeOut(VFadeIn):
+D:\Python312\Lib\site-packages\manimlib\animation\fading.py:class VFadeInThenOut(VFadeIn):
+D:\Python312\Lib\site-packages\manimlib\animation\growing.py:class GrowFromPoint(Transform):
+D:\Python312\Lib\site-packages\manimlib\animation\growing.py:class GrowFromCenter(GrowFromPoint):
+D:\Python312\Lib\site-packages\manimlib\animation\growing.py:class GrowFromEdge(GrowFromPoint):
+D:\Python312\Lib\site-packages\manimlib\animation\growing.py:class GrowArrow(GrowFromPoint):
+D:\Python312\Lib\site-packages\manimlib\animation\indication.py:class FocusOn(Transform):
+D:\Python312\Lib\site-packages\manimlib\animation\indication.py:class Indicate(Transform):
+D:\Python312\Lib\site-packages\manimlib\animation\indication.py:class Flash(AnimationGroup):
+D:\Python312\Lib\site-packages\manimlib\animation\indication.py:class CircleIndicate(Transform):
+D:\Python312\Lib\site-packages\manimlib\animation\indication.py:class ShowPassingFlash(ShowPartial):
+D:\Python312\Lib\site-packages\manimlib\animation\indication.py:class VShowPassingFlash(Animation):
+D:\Python312\Lib\site-packages\manimlib\animation\indication.py:class FlashAround(VShowPassingFlash):
+D:\Python312\Lib\site-packages\manimlib\animation\indication.py:class FlashUnder(FlashAround):
+D:\Python312\Lib\site-packages\manimlib\animation\indication.py:class ShowCreationThenDestruction(ShowPassingFlash):
+D:\Python312\Lib\site-packages\manimlib\animation\indication.py:class ShowCreationThenFadeOut(Succession):
+D:\Python312\Lib\site-packages\manimlib\animation\indication.py:class AnimationOnSurroundingRectangle(AnimationGroup):
+D:\Python312\Lib\site-packages\manimlib\animation\indication.py:class ShowPassingFlashAround(AnimationOnSurroundingRectangle):
+D:\Python312\Lib\site-packages\manimlib\animation\indication.py:class ShowCreationThenDestructionAround(AnimationOnSurroundingRectangle):
+D:\Python312\Lib\site-packages\manimlib\animation\indication.py:class ShowCreationThenFadeAround(AnimationOnSurroundingRectangle):
+D:\Python312\Lib\site-packages\manimlib\animation\indication.py:class ApplyWave(Homotopy):
+D:\Python312\Lib\site-packages\manimlib\animation\indication.py:class WiggleOutThenIn(Animation):
+D:\Python312\Lib\site-packages\manimlib\animation\indication.py:class TurnInsideOut(Transform):
+D:\Python312\Lib\site-packages\manimlib\animation\indication.py:class FlashyFadeIn(AnimationGroup):
+D:\Python312\Lib\site-packages\manimlib\animation\movement.py:class Homotopy(Animation):
+D:\Python312\Lib\site-packages\manimlib\animation\movement.py:class SmoothedVectorizedHomotopy(Homotopy):
+D:\Python312\Lib\site-packages\manimlib\animation\movement.py:class ComplexHomotopy(Homotopy):
+D:\Python312\Lib\site-packages\manimlib\animation\movement.py:class PhaseFlow(Animation):
+D:\Python312\Lib\site-packages\manimlib\animation\movement.py:class MoveAlongPath(Animation):
+D:\Python312\Lib\site-packages\manimlib\animation\numbers.py:class ChangingDecimal(Animation):
+D:\Python312\Lib\site-packages\manimlib\animation\numbers.py:class ChangeDecimalToValue(ChangingDecimal):
+D:\Python312\Lib\site-packages\manimlib\animation\numbers.py:class CountInFrom(ChangingDecimal):
+D:\Python312\Lib\site-packages\manimlib\animation\rotation.py:class Rotating(Animation):
+D:\Python312\Lib\site-packages\manimlib\animation\rotation.py:class Rotate(Rotating):
+D:\Python312\Lib\site-packages\manimlib\animation\specialized.py:class Broadcast(LaggedStart):
+D:\Python312\Lib\site-packages\manimlib\animation\transform.py:class Transform(Animation):
+D:\Python312\Lib\site-packages\manimlib\animation\transform.py:        # in subclasses
+D:\Python312\Lib\site-packages\manimlib\animation\transform.py:                f"{self.__class__.__name__}.create_target not properly implemented"
+D:\Python312\Lib\site-packages\manimlib\animation\transform.py:class ReplacementTransform(Transform):
+D:\Python312\Lib\site-packages\manimlib\animation\transform.py:class TransformFromCopy(Transform):
+D:\Python312\Lib\site-packages\manimlib\animation\transform.py:class MoveToTarget(Transform):
+D:\Python312\Lib\site-packages\manimlib\animation\transform.py:class _MethodAnimation(MoveToTarget):
+D:\Python312\Lib\site-packages\manimlib\animation\transform.py:class ApplyMethod(Transform):
+D:\Python312\Lib\site-packages\manimlib\animation\transform.py:class ApplyPointwiseFunction(ApplyMethod):
+D:\Python312\Lib\site-packages\manimlib\animation\transform.py:class ApplyPointwiseFunctionToCenter(Transform):
+D:\Python312\Lib\site-packages\manimlib\animation\transform.py:class FadeToColor(ApplyMethod):
+D:\Python312\Lib\site-packages\manimlib\animation\transform.py:class ScaleInPlace(ApplyMethod):
+D:\Python312\Lib\site-packages\manimlib\animation\transform.py:class ShrinkToCenter(ScaleInPlace):
+D:\Python312\Lib\site-packages\manimlib\animation\transform.py:class Restore(Transform):
+D:\Python312\Lib\site-packages\manimlib\animation\transform.py:class ApplyFunction(Transform):
+D:\Python312\Lib\site-packages\manimlib\animation\transform.py:class ApplyMatrix(ApplyPointwiseFunction):
+D:\Python312\Lib\site-packages\manimlib\animation\transform.py:class ApplyComplexFunction(ApplyMethod):
+D:\Python312\Lib\site-packages\manimlib\animation\transform.py:class CyclicReplace(Transform):
+D:\Python312\Lib\site-packages\manimlib\animation\transform.py:class Swap(CyclicReplace):
+D:\Python312\Lib\site-packages\manimlib\animation\transform_matching_parts.py:class TransformMatchingParts(AnimationGroup):
+D:\Python312\Lib\site-packages\manimlib\animation\transform_matching_parts.py:class TransformMatchingShapes(TransformMatchingParts):
+D:\Python312\Lib\site-packages\manimlib\animation\transform_matching_parts.py:class TransformMatchingStrings(TransformMatchingParts):
+D:\Python312\Lib\site-packages\manimlib\animation\transform_matching_parts.py:class TransformMatchingTex(TransformMatchingStrings):
+D:\Python312\Lib\site-packages\manimlib\animation\update.py:class UpdateFromFunc(Animation):
+D:\Python312\Lib\site-packages\manimlib\animation\update.py:class UpdateFromAlphaFunc(Animation):
+D:\Python312\Lib\site-packages\manimlib\animation\update.py:class MaintainPositionRelativeTo(Animation):

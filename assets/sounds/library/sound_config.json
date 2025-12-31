@@ -1,0 +1,53 @@
+{
+  "ShowCreation": "creation/pen_draw.mp3",
+  "Write": "creation/write.mp3",
+  "DrawBorderThenFill": "creation/brush_fill.mp3",
+  "Uncreate": "creation/erase.mp3",
+  
+  "FadeIn": "fade/fade_in.mp3",
+  "FadeOut": "fade/fade_out.mp3",
+  "FadeInFromLarge": "fade/zoom_in.mp3",
+  "FadeInFromPoint": "fade/sparkle.mp3",
+  "FadeToColor": "fade/color_shift.mp3",
+  
+  "Transform": "transform/morph.mp3",
+  "ReplacementTransform": "transform/morph.mp3",
+  "TransformFromCopy": "transform/copy.mp3",
+  "MoveToTarget": "transform/slide.mp3",
+  "ApplyMethod": "transform/adjust.mp3",
+  "ClockwiseTransform": "transform/rotate.mp3",
+  "CounterclockwiseTransform": "transform/rotate.mp3",
+  
+  "GrowFromCenter": "grow/pop_in.mp3",
+  "GrowFromPoint": "grow/pop_in.mp3",
+  "GrowFromEdge": "grow/expand.mp3",
+  "GrowArrow": "grow/arrow_shoot.mp3",
+  "ScaleInPlace": "grow/scale.mp3",
+  "ShrinkToCenter": "grow/shrink.mp3",
+  "SpinInFromNothing": "grow/spin_in.mp3",
+  
+  "Indicate": "indicate/highlight.mp3",
+  "Flash": "indicate/flash.mp3",
+  "CircleIndicate": "indicate/circle_pop.mp3",
+  "ShowPassingFlash": "indicate/swoosh.mp3",
+  "Wiggle": "indicate/wiggle.mp3",
+  "TurnInsideOut": "indicate/flip.mp3",
+  "FocusOn": "indicate/focus.mp3",
+  "Circumscribe": "indicate/circle_draw.mp3",
+  
+  "MoveAlongPath": "movement/slide.mp3",
+  "Homotopy": "movement/flow.mp3",
+  "PhaseFlow": "movement/water.mp3",
+  
+  "Rotate": "rotation/rotate.mp3",
+  "Rotating": "rotation/spinning.mp3",
+  
+  "ChangeDecimalToValue": "number/tick.mp3",
+  "CountInFrom": "number/count.mp3",
+  
+  "Restore": "misc/restore.mp3",
+  "ApplyFunction": "misc/process.mp3",
+  "ApplyMatrix": "misc/transform.mp3",
+  "Swap": "misc/swap.mp3",
+  "CyclicReplace": "misc/cycle.mp3"
+}

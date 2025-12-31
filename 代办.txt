@@ -1,0 +1,391 @@
+2.要给字幕文本重点部分上色，红色等彩色(优化提示词）
+3.可视化区域，一定要使用更新器动态展示，不能一直静止(优化提示词）
+4.排版问题修复，要自适应的算法（to do），使得上下间隔合适均匀，Text和Tex内容在横向上尽可能填满画布。减少左右留白，左右边距（Margins）控制在总宽度的 5% 以内（或 buffer=0.2），避免文本集中在中间形成细长条
+例如：
+ref_tex = Tex(r"\rule{100pt}{1pt}", font_size=self.PROBLEM_FONT_SIZE)
+        pt_per_manim = 100 / ref_tex.get_width()
+        
+        # 计算目标宽度（95% 屏幕宽度转换为 pt）
+        available_width = self.SCREEN_WIDTH * (1 - 2 * self.MARGIN_RATIO)
+        target_pt = int(available_width * pt_per_manim)
+        
+        if self._debug_mode:
+            print(f"[parbox] 换算系数: 1 Manim = {pt_per_manim:.2f} pt")
+            print(f"[parbox] 目标宽度: {available_width:.3f} Manim = {target_pt} pt")
+        
+        # 使用 parbox 自动换行的题目内容
+        # 注意：parbox 内部是文本模式，数学公式需要用 $...$ 包裹
+        
+        # 第一部分：集合定义
+        problem_part1 = Tex(
+            rf"\parbox{{{target_pt}pt}}{{"
+            r"\text{设集合 } $P = \{-1, 0, 1, 2, 3, 4\}$, "
+            r"$Q = \{-2, -1, 0, 1, 2, 3\}$"
+            r"}",
+            font_size=self.PROBLEM_FONT_SIZE
+        )
+        
+        # 第二部分：取整数条件
+        problem_part2 = Tex(
+            rf"\parbox{{{target_pt}pt}}{{"
+            r"\text{从 } $P$ \text{ 取整数 } $a$ \text{，从 } $Q$ \text{ 取整数 } $b$"
+            r"}",
+            font_size=self.PROBLEM_FONT_SIZE
+        )
+        
+        # 第一小问
+        q1 = Tex(
+            rf"\parbox{{{target_pt}pt}}{{"
+            r"\text{(1) 求 } $y = ax^b$ \text{ 为幂函数且为奇函数的概率}"
+            r"}",
+            font_size=self.PROBLEM_FONT_SIZE
+        )
+
+
+B. 可视化区域必须“动态展示”（必须用更新器）
+
+可视化区域内至少存在 1 个持续更新的对象（Updater 驱动），全程不能是“画面静止、只有字幕在变”。
+
+动态展示最低要求（任选其一，但必须持续存在）：
+
+ValueTracker + DecimalNumber(updater) 动态显示数值；
+
+曲线/点/箭头/进度条随时间变化（位置、长度、透明度、描边宽度等均可）；
+
+讲解过程中用“指示器/游标/扫描线”随时间移动；
+
+若本段内容本质静态，也必须加入“轻量动态”：例如关键框高亮呼吸（周期性 alpha/scale）、时间轴游标移动、相机微平移（仍建议用 updater）。
+
+Updater 的节奏要与时间戳对齐：每个时间段开始时重置/设定 tracker 的目标区间，使动态变化具有“讲解对应关系”，而不是随机漂移。
+
+
+
+可视化区“Updater 动态展示”的最低模板约束（供你写进 AutoScene API）
+
+你可以把以下逻辑写成 add_dynamic_indicator(viz_group, t_start, t_end)：
+
+必须有 ValueTracker t，并在段落内 t.animate.set_value(1)（或目标数值）；
+
+至少一个对象绑定 updater：
+
+数值显示：decimal.add_updater(lambda d: d.set_value(f(t.get_value())))
+
+游标移动：cursor.add_updater(lambda c: c.move_to(path.point_from_proportion(t.get_value())))
+
+呼吸高亮：rect.add_updater(lambda r: r.set_stroke(width=...))
+下面给你两部分内容，都是“可直接交给代码生成 AI/ManimGL 工程”使用的：
+
+1. **提示词层面的强约束规范**（写进你的总 Prompt）
+2. **可落地的自适应排版算法逻辑**（含伪代码 + ManimGL 代码骨架），覆盖：标题、分割线、题目、可视化、推导过程、字幕六块的**横向尽量铺满 + 左右边距≤5% + 纵向间距均匀自适应**，并避免“细长条”。
+
+---
+
+## 1) 提示词补丁（直接粘贴到你的总 Prompt）
+
+**排版强约束（必须实现）**
+
+* 画面内容分为 6 个垂直模块，顺序固定：
+
+  1. `Title`（标题）
+  2. `Divider`（标题下分割线）
+  3. `Problem`（题目/已知条件）
+  4. `Viz`（可视化区域）
+  5. `Derivation`（推导过程/步骤）
+  6. `Subtitle`（字幕）
+
+* **左右边距约束**：
+  设画幅宽 `frame_w`，左右边距 `m = min(0.2, 0.05*frame_w)`，所有模块最终必须落在安全宽度 `W = frame_w - 2*m` 内；并且应尽可能填满横向：目标占宽 `target_fill = 0.92~0.95`（即模块宽度尽量达到 `target_fill*W`），避免文本集中在中间形成细长条。
+
+* **横向自适应（Text/Tex 都要）**：
+  对 `Text` 与 `Tex/MathTex`：当内容宽度超过 `target_max = 0.95*W` 时必须自动换行（在 Python 侧拆行生成多行对象）；当内容宽度低于 `target_min = 0.85*W` 时，允许通过“减少换行 + 适度增大字号/整体 scale_to_fit_width(target_fill*W)”让宽度更饱满。
+
+* **纵向自适应（间距均匀）**：
+  在安全高度 `H = frame_h - 2*m` 内，将 6 个模块组成 `VGroup`，使用统一间距 `buff` 排列；`buff` 需由可用高度自动计算并 clamp 到 `[buff_min, buff_max]`。若高度超出，则按优先级缩放：`Subtitle/Derivation/Problem` 优先缩，`Viz` 保留最小高度阈值（例如 ≥ 0.28*frame_h），最后才整体缩放。
+
+* **对齐与留白控制**：
+  模块整体 **左对齐**（aligned_edge=LEFT），并 `to_edge(LEFT, buff=m)`；同时通过横向填满逻辑让每块宽度接近 `target_fill*W`，从而右侧留白不至于过大。
+
+---
+
+## 2) 具体算法逻辑（可实现）
+
+### 2.1 全局安全区与目标宽度
+
+* `m = min(0.2, 0.05*frame_w)`
+* `W = frame_w - 2*m`
+* `H = frame_h - 2*m`
+* 横向目标：
+
+  * `target_max = 0.95*W`（超过就必须换行）
+  * `target_fill = 0.92*W`（尽量铺满）
+  * `target_min = 0.85*W`（低于则尝试减少换行或增大字号/scale）
+
+### 2.2 Text / Tex 的“先换行后填满”策略（避免细长条）
+
+**核心原则**：不要一上来缩小字号把长句压成一条细线；应先换行控制最大宽度，再把整体宽度拉到接近 `target_fill`。
+
+对每个文本模块（Problem / Derivation / Subtitle）执行：
+
+**Step A：若 width > target_max，进行自动换行**
+
+* `Text`：把字符串拆 token（中文按字、英文按词、标点单独 token），贪心追加并测宽，超过 `target_max` 就断行。
+* `Tex`：同理，但 token 需要“TeX 安全”（至少保证不拆坏反斜杠命令与大括号结构；如果你的字幕 TeX 规范统一 `\text{...}`，则可按普通文本 token 化更稳）。
+
+**Step B：换行后若 width < target_min，尝试“减少换行/放大到 target_fill”**
+
+* 优先尝试：把某些短行与下一行合并（回退 1 个断点），只要合并后不超过 `target_max`。
+* 仍偏窄：对整块 `scale_to_fit_width(target_fill)`（或适度增大 font_size 重建）。
+
+> 这样做的结果是：宽度既不超，也不“过窄”，自然不会形成细长条。
+
+### 2.3 垂直均匀间距 buff 的自适应计算
+
+设模块列表 `blocks = [title, divider, problem, viz, derivation, subtitle]`，每块高度 `h_i`：
+
+* 先估算总高度：`sum_h = Σ h_i`
+* 计算可分配给间距的高度：`gap_budget = H - sum_h`
+* 统一间距：
+  [
+  buff = clamp\Big(\frac{gap_budget}{n-1},\ buff_{min},\ buff_{max}\Big)
+  ]
+* 若 `gap_budget < buff_min*(n-1)`（放不下）：
+
+  1. 先把 `buff = buff_min`
+  2. 仍放不下则按优先级缩放模块，更新 `sum_h` 直到可行
+     **缩放优先级建议**：Subtitle → Derivation → Problem → Title → Viz（Viz 设最小高度阈值）
+  3. 最后手段：整体 group 缩放至 fit height。
+
+### 2.4 分割线 Divider 的处理
+
+* 分割线不参与换行，只需严格 `set_width(W)` 并左对齐：
+
+  * `divider = Line(LEFT, RIGHT).set_width(W)`
+  * 与 Title 的间距参与统一 `buff` 计算（或者给 Title 与 Divider 额外小间距系数，例如 `0.6*buff`，但要保证整体仍“均匀感”）。
+
+---
+
+## 3) ManimGL 代码骨架（可直接让代码生成 AI 按此实现）
+
+> 下面是“结构骨架 + 关键函数”，你可以直接塞进 AutoScene 作为 `layout_engine.py` 的核心。
+
+```python
+import re
+from manimlib import *
+
+# -----------------------------
+# 1) token 化（可按你的字幕规范升级）
+# -----------------------------
+def tokenize_text(s: str):
+    s = re.sub(r"([,，.。;；:：!?！？])", r" \1 ", s)
+    parts = s.split()
+    tokens = []
+    for p in parts:
+        # 粗略：含中文则按字切
+        if re.search(r"[\u4e00-\u9fff]", p) and len(p) > 1:
+            tokens.extend(list(p))
+        else:
+            tokens.append(p)
+    return tokens
+
+def join_tokens(tokens):
+    out = ""
+    for i, t in enumerate(tokens):
+        if i == 0:
+            out += t
+        else:
+            # 英文/数字之间补空格，其余直接拼
+            if re.match(r"[A-Za-z0-9]", t) and re.match(r"[A-Za-z0-9]", tokens[i-1]):
+                out += " " + t
+            else:
+                out += t
+    return out
+
+# -----------------------------
+# 2) 自动换行：Text 版本（Tex 同理，只是构造类不同）
+# -----------------------------
+def wrap_by_width(mob_cls, text, max_w, build_kwargs):
+    tokens = tokenize_text(text)
+    lines, cur = [], []
+
+    for tok in tokens:
+        trial = cur + [tok]
+        trial_str = join_tokens(trial)
+        trial_mob = mob_cls(trial_str, **build_kwargs)
+
+        if trial_mob.get_width() <= max_w or not cur:
+            cur = trial
+        else:
+            lines.append(join_tokens(cur))
+            cur = [tok]
+
+    if cur:
+        lines.append(join_tokens(cur))
+
+    return lines
+
+def build_multiline(mob_cls, lines, build_kwargs, line_buff=0.22):
+    mobs = VGroup(*[mob_cls(ln, **build_kwargs) for ln in lines])
+    mobs.arrange(DOWN, aligned_edge=LEFT, buff=line_buff)
+    return mobs
+
+# -----------------------------
+# 3) 横向填满策略：先换行控 max，再拉到 target_fill
+# -----------------------------
+def fit_block_horizontal(mob_cls, raw_text, W, m, build_kwargs,
+                         target_max_ratio=0.95, target_fill_ratio=0.92, target_min_ratio=0.85):
+    max_w = target_max_ratio * W
+    fill_w = target_fill_ratio * W
+    min_w  = target_min_ratio * W
+
+    # 先生成单行试探
+    one = mob_cls(raw_text, **build_kwargs)
+
+    if one.get_width() <= max_w:
+        block = one
+    else:
+        lines = wrap_by_width(mob_cls, raw_text, max_w, build_kwargs)
+        block = build_multiline(mob_cls, lines, build_kwargs)
+
+    # 太窄则尽量拉宽（避免细长条）
+    if block.get_width() < min_w:
+        block.scale_to_fit_width(fill_w)
+    else:
+        # 仍建议靠近 fill_w，但不要超过 max_w
+        if block.get_width() < fill_w:
+            block.scale_to_fit_width(min(fill_w, max_w))
+
+    # 落在安全区内
+    if block.get_width() > W:
+        block.scale_to_fit_width(W)
+
+    block.to_edge(LEFT, buff=m)
+    return block
+
+# -----------------------------
+# 4) 垂直均匀间距布局：自适应 buff + 超限缩放策略
+# -----------------------------
+def layout_vertical(blocks, frame_w, frame_h,
+                    margin_ratio=0.05, margin_abs=0.2,
+                    buff_min=0.18, buff_max=0.45,
+                    viz_min_h_ratio=0.28):
+
+    m = min(margin_abs, margin_ratio * frame_w)
+    W = frame_w - 2*m
+    H = frame_h - 2*m
+
+    # 先确保每块宽度不超过 W，并尽量接近 W
+    for b in blocks:
+        if b.get_width() > W:
+            b.scale_to_fit_width(W)
+
+    def total_h(bs): return sum(x.get_height() for x in bs)
+
+    n = len(blocks)
+    sum_h = total_h(blocks)
+    gap_budget = H - sum_h
+
+    # 计算 buff
+    if gap_budget >= buff_min * (n - 1):
+        buff = max(buff_min, min(buff_max, gap_budget / (n - 1)))
+    else:
+        buff = buff_min
+
+        # 放不下：按优先级缩放（字幕/推导/题目优先，viz 保底）
+        # 你可以用更细的权重与最小字号阈值
+        viz = None
+        for b in blocks:
+            if getattr(b, "is_viz_block", False):
+                viz = b
+
+        def viz_min_h():
+            return viz_min_h_ratio * frame_h
+
+        # 缩放循环
+        safety = 0
+        while (total_h(blocks) + buff*(n-1) > H) and safety < 60:
+            safety += 1
+
+            # 1) 优先缩 Subtitle / Derivation / Problem（假设你传入时按类型可识别）
+            shrink_candidates = []
+            for b in blocks[::-1]:
+                if getattr(b, "shrink_priority", 5) >= 3:
+                    shrink_candidates.append(b)
+
+            if not shrink_candidates:
+                shrink_candidates = blocks
+
+            shrunk = False
+            for b in shrink_candidates:
+                if viz is not None and b is viz:
+                    if viz.get_height() <= viz_min_h():
+                        continue
+                b.scale(0.96)
+                shrunk = True
+                break
+
+            if not shrunk:
+                # 最后整体缩放
+                group = VGroup(*blocks)
+                group.scale_to_fit_height(H)
+                break
+
+    group = VGroup(*blocks).arrange(DOWN, aligned_edge=LEFT, buff=buff)
+
+    # 横向再校正：尽量填满 W
+    if group.get_width() < 0.90 * W:
+        group.scale_to_fit_width(0.92 * W)
+    if group.get_width() > W:
+        group.scale_to_fit_width(W)
+
+    group.to_edge(LEFT, buff=m)
+    group.move_to(ORIGIN)
+
+    return group, dict(m=m, W=W, H=H, buff=buff)
+
+# -----------------------------
+# 5) 使用示例：六块布局
+# -----------------------------
+class LayoutDemo(Scene):
+    def construct(self):
+        frame_w = config.frame_width
+        frame_h = config.frame_height
+        m = min(0.2, 0.05*frame_w)
+        W = frame_w - 2*m
+
+        title = Text("第 18 题：概率与离心率", font_size=42)
+        divider = Line(LEFT, RIGHT).set_width(W)
+        problem = fit_block_horizontal(Text, "已知集合 P=[-1,4], Q=[-2,3] ...（题面略）",
+                                       W=W, m=m, build_kwargs=dict(font_size=30))
+
+        viz = VGroup(Square(), Dot()).scale(1.2)   # 你的可视化区
+        viz.is_viz_block = True
+
+        deriv = fit_block_horizontal(Text, "推导：先计数样本空间... 再用容斥...",
+                                     W=W, m=m, build_kwargs=dict(font_size=30))
+        subtitle = fit_block_horizontal(Text, "字幕：关键结论是 b 为奇数或 a=0。重点【红】容斥【/红】。",
+                                        W=W, m=m, build_kwargs=dict(font_size=28))
+
+        # 你可以给 shrink_priority 做更精细控制
+        title.shrink_priority = 1
+        divider.shrink_priority = 1
+        problem.shrink_priority = 3
+        viz.shrink_priority = 2
+        deriv.shrink_priority = 4
+        subtitle.shrink_priority = 5
+
+        group, meta = layout_vertical([title, divider, problem, viz, deriv, subtitle],
+                                      frame_w, frame_h)
+
+        self.add(group)
+        self.wait()
+```
+
+---
+
+## 你接下来只需要补的“to do”
+
+1. **Tex 安全换行**：如果你的 `Tex` 内容不仅是纯文本，还包含命令/公式，需要把 `tokenize_text` 升级成“TeX 结构不拆分”的 tokenizer（至少保证 `\command{...}` 与 `{...}` 成对结构不被切开）。
+2. **模块类型标记**：如上用 `is_viz_block`、`shrink_priority`，让缩放策略可控、可复用。
+3. **红色高亮渲染**：若字幕用 Tex，可把 `【红】...【/红】` 替换成 `\textcolor{red}{...}`；若字幕用 Text，可用 `MarkupText` 或分段上色（把一句拆成 3 段 VGroup）。
+
+如果你把你实际使用的文本类型明确一下：`Title/Problem/Derivation/Subtitle` 你更偏 `Text` 还是 `Tex`（以及是否含大量数学），我可以把 **Tex 安全 tokenizer + 高亮替换 + 换行回退合并（减少细碎短行）** 一并补全到“可直接复制进工程”的版本。
