@@ -2,14 +2,43 @@
 
 面向 ManimGL + AutoScene 的统一提示词与规范，合并项目内所有提示词与硬性约束，直接粘贴即可用。
 
-## 0. 快速索引
+---
 
-- AI-1（题目图片输入）：5.1
-- AI-1（视频解析/洗稿）：5.3
-- AI-1（PPT 解析/复刻）：5.4
-- AI-2（ManimGL/AutoScene 代码生成）：5.5
-- 排版/动态/字幕补丁：5.6
-- 代码骨架与算法模板：6.x
+## 目录
+
+- [1. AutoScene/ManimGL 能力速查](#1-autoscenемanimgl-能力速查)
+  - [1.1 配音与字幕](#11-配音与字幕)
+  - [1.2 视觉引导与标注](#12-视觉引导与标注)
+  - [1.3 相机与固定元素](#13-相机与固定元素)
+  - [1.4 辉光与脉动](#14-辉光与脉动)
+  - [1.5 调试与时间](#15-调试与时间)
+  - [1.6 布局辅助](#16-布局辅助)
+  - [1.7 坐标轴与箭头（New）](#17-坐标轴与箭头new)
+  - [1.8 呼吸效果（New）](#18-呼吸效果new)
+  - [1.9 默认常量](#19-默认常量可通过-set_subtitle_style-覆盖)
+- [2. 工作流总览](#2-工作流总览)
+- [3. 阶段独立性原则（Phase Independence）](#3-阶段独立性原则phase-independence)
+  - [3.1 问题背景](#31-问题背景)
+  - [3.2 解决方案：安全共享对象访问](#32-解决方案安全共享对象访问)
+  - [3.3 代码规范](#33-代码规范)
+  - [3.4 测试方式](#34-测试方式)
+- [4. JSON Schema 与 visual_action 映射](#4-json-schema-与-visual_action-映射)
+  - [4.1 最小 Schema](#41-最小-schema)
+  - [4.2 推荐 Schema（完整版）](#42-推荐-schema完整版)
+  - [4.3 visual_action → 动画映射](#43-visual_action--动画映射)
+- [5. 提示词库（可直接复制）](#5-提示词库可直接复制)
+  - [5.1 AI-1（题目图片输入）](#51-ai-1题目图片输入完整版提示词)
+  - [5.2 AI-1（视频解析）](#52-ai-1视频解析高精度提示词包--json)
+  - [5.3 AI-1（PPT 解析）](#53-ai-1ppt-解析高精度提示词包--json)
+  - [5.4 AI-2（ManimGL/AutoScene 代码生成）](#54-ai-2manimglautoscene-代码生成严格版提示词)
+- [6. 代码骨架与算法模板](#6-代码骨架与算法模板可直接复用)
+  - [6.1 时间轴驱动三件套](#61-时间轴驱动三件套)
+  - [6.2 AutoScene 场景骨架](#62-autoscene-场景骨架推荐)
+  - [6.3 六块布局使用示例](#63-六块布局使用示例推荐)
+  - [6.4 可视化动态模板](#64-可视化动态模板updater-必须)
+
+
+---
 
 ## 1. AutoScene/ManimGL 能力速查
 
@@ -47,7 +76,16 @@
 - `add_glow_to_curve`
 - `create_pulse_glow_curve` / `create_pulse_glow_function` / `create_pulse_glow_circle`
 
-### 1.5 调试与时间
+### 1.5 GPU 辉光与彗尾 (GPU Glow)
+
+- `create_glow_curve(function, t_range, ...)`：基于着色器的 GPU 辉光曲线
+- `create_glow_function_graph(function, x_range, ...)`：GPU 辉光函数图
+- `create_glow_wrapper(mobject, ...)`：为任意对象添加 GPU 辉光包裹
+- `create_glow_point_cloud(points, colors, ...)`：GPU 辉光点云
+- `TracingTailPMobject(...)`：辉光彗尾效果 (需要 shaderscene)
+- `create_glow_surrounding_rect(...)`：软件模拟辉光方框 (兼容性好)
+
+### 1.6 调试与时间
 
 - `enable_debug` / `enable_time_hud`
 - `mark` / `get_markers` / `get_current_time`
@@ -55,8 +93,24 @@
 ### 1.6 布局辅助
 
 - `ensure_above_subtitle(mobject, viz_bottom_y=None, margin=0.3, overlap_buff=0.2)`
+- `create_title_divider(title_text, ...)`：创建标题+自适应辉光分割线
+- `layout_content_blocks(problem, viz, derivation, ...)`：自动均匀分布内容块
+- `get_subtitle_top_y()`：动态获取字幕顶部坐标
+- `get_content_center_y(block_index, ...)`：获取块中心 y 坐标 (0=Prob, 1=Viz, 2=Deriv)
 
-### 1.7 默认常量（可通过 set_subtitle_style 覆盖）
+### 1.7 坐标轴与箭头（New）
+
+- `StealthTip(angle, width, length, back_indent)`：仿 TikZ stealth 尖锐箭头
+- `add_stealth_tip_to_line(line, ...)`：为线添加 stealth 箭头
+- `create_stealth_axes(...)`：创建带指定范围和 stealth 箭头的坐标轴
+- `create_stealth_axes_with_labels(...)`：创建带标签的 stealth 坐标轴
+
+### 1.8 呼吸效果（New）
+
+- `create_breathing_glow_dot(center, mode, ...)`：创建呼吸辉光点（basic/rainbow/heartbeat/pulse/wave）
+- `BreathingModeManager` / `next_breathing_mode()`：呼吸模式管理
+
+### 1.9 默认常量（可通过 set_subtitle_style 覆盖）
 
 - `SUBTITLE_FONT="STKaiti"`
 - `SUBTITLE_FONT_SIZE=28`
@@ -198,10 +252,10 @@ def construct(self):
 
 ## 5. 提示词库（可直接复制）
 
-### 5.1 AI-1（题目图片输入）：一体化提示词（上下文 + OCR/抽取 + 结构化 JSON）
+### 5.1 AI-1（题目图片输入）：完整版提示词
 
 ```markdown
-你是短视频脚本与时间轴编排器。请基于我给出的题目图片（可含文字补充），生成「旁白 + 时间戳 + 画面驱动字段」的 JSON。
+你是短视频脚本与时间轴编排器。请基于我给出的题目图片（可含文字补充），生成可直接驱动 ManimGL/AutoScene 的「时间轴 JSON + 题面解析材料」。目标：不抄错、不漏条件，时间轴可执行。
 
 【输入信息（请填写）】
 1) 图片类型：截图/照片/扫描件/拼接图
@@ -210,19 +264,118 @@ def construct(self):
 4) 目标时长：60s / 3min / 8min
 5) 讲解深度：只讲关键步骤 / 讲完整推导
 
-【规则】
+【素材】
+- 题目图片：<粘贴图片>
+- 补充文字：<可选>
+- 附加上下文：<粘贴来源/时长/深度等>
+
+【总规则（必须遵守）】
 1) 字速：intro 5 字/s，middle 4.5 字/s，outro 5 字/s；时间精度 0.1s，严格递增不重叠。
 2) 停顿：句末 0.2–0.4s；转场 0.6–1.0s（单独事件，visual_action="转场"）。
 3) 每句字段：scene_id，section(intro/middle/outro)，start，end，narration，screen_text，latex，visual_action（限定：标题/定义/示意图/推导/例题/强调/小结/转场）。
 4) 总时长控制在 [60,90]s（如未指定以此为准）。
 5) 图片题特有：先抽取题面关键信息并重排成“上屏版”；公式用可编译 LaTeX；不确定处用【?】标注，避免臆测。
 6) 讲解与上屏分离：narration 用口语化 TTS 文案，screen_text 用更“数学化”的上屏文本；公式优先放在 latex 字段。
+示例（口语 vs 上屏）：
+- narration: "x 小于 0"
+- screen_text: "x < 0"
+- latex: "x < 0"
 7) 一句一动作：每句只表达一个动作意图，visual_action 必须可驱动对应画面变化。
+示例（一句一动作拆分）：
+- 错误：首先设 x=a，代入方程，化简得到 x^2=4
+- 正确1：首先，设 x=a（visual_action=定义）
+- 正确2：代入原方程（visual_action=强调）
+- 正确3：化简得到 x^2=4（visual_action=推导）
+8) 题面自动换行：每行≤16等效字符（中文1字=1单位，英文2字符=1单位，行内公式整体按10单位计且不可拆），优先在标点/虚词/公式前后换行，禁止在公式内部换行；输出 problem_lines[] 数组。
 
-【输出】仅输出 JSON，不要解释。
-附加上下文：<粘贴来源/时长/深度等>
-题目图片：<粘贴图片>
-补充文字：<可选>
+【解析策略要求（图片题必做）】
+- 任何“可能抄错一个符号就会变题”的地方（±、上下标、积分上下限、向量箭头、集合符号、开闭区间）必须做 confidence 标注。
+- 若图中有手写：必须提供“手写转标准数学符号”的映射表（例如：像 v 的到底是 ν 还是 v）。
+- 若图片含多题：必须先拆分题号，再分别输出下述 A–K；最后提供一个“总目录镜头”可选。
+
+【输出格式（必须按顺序输出；除以下内容外不要额外解释）】
+
+A) 题面信息抽取与可靠性标注（必须）
+- 结构化 OCR + 版面理解
+- 题目逐字稿（原题面）
+- 分块输出：标题/题干/小问(1)(2)(3)/已知条件/图形标注/表格/注释
+- 每块给出：content（公式用可编译 LaTeX）、type（Text/MathTex/纯符号/图形标注）、confidence（高/中/低；低则必须给 A/B 替代方案）、uncertain_spans（不确定片段用【?】）
+- 图形/示意图解析：几何对象/坐标轴/曲线/阴影/箭头/表格列标题等；不确定要写原因（如遮挡/像素/倾斜/光照）+近似方案 A/B
+- 版面布局摘要：block_name: bbox=(x0,y0,x1,y1)，x,y ∈ [0,1]，以屏幕左下为 (0,0)
+- 目标：保证题目内容不会抄错/漏条件/漏符号；低置信度必须给两套可执行方案
+
+B) 可复刻的“题目重排版”版本（必须）
+- 标题（可选）、题干按语义断行、公式给 LaTeX、小问编号统一
+- 若有图：给出复刻版或“保留原图 + 框选 + 标注”的替代策略
+- 必须同时提供：
+  - DisplayVersion：最终上屏文本/公式（可直接变成 Text/Tex/MathTex）
+  - SourceMapping：每一行对应原图哪个信息块（便于校对）
+
+C) 分镜脚本（Shot List，必须）
+- 至少 1s 精度；Shot 编号、时间范围（例如 00:00–00:06）、画面状态描述、核心变化、讲解意图
+- 推荐镜头：开场 → 题面聚焦 → 题面净化 → 解题主线 → 结果汇总
+
+D) 场景对象清单（Mobject 级别，必须）
+- 变量名建议、类型、样式、布局、复用关系
+- 全局对象/题面对象/解题对象分组
+
+E) 动画事件时间轴（ManimGL 动作词 + 参数，必须）
+- 时间点（绝对秒或相对序号）
+- 动作类型：ShowCreation / FadeIn / FadeOut / Write / Transform / ReplacementTransform / Indicate / Wiggle / Flash / ApplyMethod / MoveToTarget / Uncreate 等
+- 参数：run_time、rate_func、lag_ratio、path_arc（如有）
+- 并行动画：同一个 self.play(...) 里有哪些动画同时发生
+- 与字幕同步：对应 subtitle_id
+- 题面重排版必须指定 TransformMatchingTex / ReplacementTransform / FadeTransformPieces 或 Fade
+- 推导链说明：新公式是 Write 还是由旧公式 Transform 而来
+
+F) 相机与构图（若需要，必须）
+- 初始 camera frame：位置/缩放
+- 每次镜头运动：起止时间、目标区域、缓动函数
+- 推荐写法：self.play(self.camera.frame.animate.scale(...).move_to(...), ...)
+- 若不需要相机运动，明确写“无相机运动”
+
+G) 字幕文稿与旁白稿要求（必须）
+G1) 字幕清单格式（表格或 YAML/JSON 均可）
+- id, t_start, t_end, text, mode(title/subtitle/narration/equation_hint), on_screen, action_hint, anchor, pace_note
+- 第一条：Write；后续：Transform 上一句 → 下一句
+G2) 字幕时长生成规则（必须写明并执行）
+- 开场字幕：5 字/秒（或等效英文 12–15 chars/s）；正文：4.5 字/秒
+- 公式块按 8–12 字等效（默认 10）
+- 每句最短时长 1.6s；句间缓冲 0.1–0.2s
+- 必须输出：每句字数估计/折算字数/时长/总时长
+G3) 字幕内容规范
+- >22–26 字需拆句
+- 公式建议“口语化 + 局部上屏公式”配合
+- 若图片不清晰：字幕中必须显式写【此处题面不清晰：...】并给替代版本
+
+H) 解题内容输出粒度要求（必须提供两套）
+- 考试版（默认）与讲解版（可选）
+- 每一步 Step1/Step2/...，绑定：equation_tex（可为空）/explain_text（一句字幕版本）/visual_action
+
+I) 全局风格规范（Style Guide，必须）
+- 背景：深色纯色或轻微渐变（避免干扰题面）
+- 字体策略：中文 Text 用思源黑体/微软雅黑（优先可用者），英文/数字用 Arial，公式用 LaTeX
+- 字号层级：标题 48–56，正文 34–40，注释 28–32，角标 24–28（可给具体数值）
+- 线宽层级：主线 4，辅助线 2–3，高亮框 6
+- 高亮色策略：只用 1–2 个强调色；关键条件/关键等式/最终答案颜色一致
+- 留白规则：推导区不超过屏幕高度 70%，避免顶到边缘
+
+J) 给“代码生成 AI”的最终总 Prompt（必须，可直接粘贴）
+- 强制：ManimGL（3b1b 系）
+- 场景类：InteractiveScene 或 AutoScene
+- 必须实现：原题图导入（可选开关）、题面重排版对象生成、Shot List 严格按时间轴执行
+- 字幕系统：第一句 Write，其余 Transform（与时间戳绑定）
+- 关键对象变量命名与分组（便于复用 TransformMatchingTex）
+- 关键参数可配置（字体/字号/颜色/run_time/语速）
+- 并附上：字幕数据结构建议（list[dict] 或 YAML）、时间控制策略（按 t_start/t_end 驱动 wait() 或 time tracker）
+- 若有不确定内容：实现 A/B 两套开关（例如 USE_ORIGINAL_IMAGE=True / False）
+
+K) 最终 timeline JSON（必须）
+- 仅此处输出 JSON；JSON 可放在标注为 json 的代码块中，块内不得夹杂非 JSON 内容
+- 必须满足字段：scene_id/section/start/end/narration/screen_text/latex/visual_action
+- visual_action 只能来自限定集合
+- 必须包含 problem_lines[]（题面自动换行后的数组）
+- total_duration 与目标时长一致
 ```
 
 **图片工作流快速步骤**
@@ -233,172 +386,7 @@ def construct(self):
 4) 运行调试 → `self.enable_debug(True)` 逐阶段检查
 5) 渲染输出 → `manimgl script.py SceneName -w --resolution 1080x1920`
 
-#### 5.1-增强：题目图片高精度解析与可复刻抽象（严格版）
-
-```markdown
-0) 输入约束（你提供图片时建议附带，但不是必须）
-图片类型：截图/照片/扫描件/拼接图
-若有：题目来源（章节/编号/课程）、期望解法风格（考试版/讲解版/竞赛版）
-若有：目标时长（例如 60s / 3min / 8min），或目标讲解深度（只讲关键步骤/讲完整推导）
-
-你必须输出的内容（逐项给出）
-1) 题面信息抽取与可靠性标注（必须）
-对图片做“结构化 OCR + 版面理解”，输出：
-- 题目逐字稿（原题面）
-- 分块输出：标题/题干/小问(1)(2)(3)/已知条件/图形标注/表格/注释
-- 对每一块给出：
-  - content：逐字文本（公式用可编译 LaTeX）
-  - type：Text / MathTex / 纯符号 / 图形标注
-  - confidence：高/中/低（低则必须给替代方案）
-  - uncertain_spans：不确定片段用 【?】 标记
-
-图形/示意图解析（若存在）
-- 列出所有几何对象或示意元素：点、线段、角标、坐标轴、曲线、阴影区域、箭头、表格列标题等
-- 若无法完全确定，必须写明：
-  - 无法确定的原因（遮挡/像素/倾斜/光照）
-  - 近似方案 A/B（例如：用简化示意图替代；或直接保留原图并框选关键区域）
-
-版面布局摘要（用于复刻相对位置）
-- 用“屏幕归一化坐标”描述每个块的位置（不要求像素级，但要可复刻）
-- 建议格式：block_name: bbox=(x0,y0,x1,y1)，x,y ∈ [0,1]，以屏幕左下为 (0,0)
-
-目标：保证“题目内容不会抄错/漏条件/漏符号”。如果某处低置信度，你必须在输出里显式标注并给两套可执行方案。
-
-2) 可复刻的“题目重排版”版本（必须）
-输出一份“适合上屏讲解”的重排版题面（不是照搬图片布局，而是板书/课件风格），要求：
-- 标题（可选）：如“例题：xxx”
-- 题干：按语义断行，避免一行过长
-- 公式：全部给出可编译 LaTeX（MathTex）
-- 小问：编号统一（(1)(2)(3) 或 a,b,c）
-- 若原图有图：给出图的复刻版本或“保留原图 + 框选 + 标注”的替代策略
-
-输出时必须同时提供：
-- DisplayVersion：最终上屏文本/公式（可直接变成 Text/Tex/MathTex）
-- SourceMapping：每一行对应原图哪个信息块（便于校对）
-
-3) 分镜脚本（Shot List，带时间戳，必须）
-将“题目图片 → 题面重排版 → 解题过程 → 总结”切分镜头，至少到 1s 精度。每个 Shot 必须包含：
-- Shot 编号
-- 时间范围（例如 00:00–00:06）
-- 画面状态描述（对象有哪些、相对位置）
-- 核心变化（出现/消失/变形/移动/高亮/框选/相机运动）
-- 讲解意图（这一镜头讲什么，为什么需要这个变化）
-
-推荐镜头模板（可按需要删改）：
-- 开场：展示原题图片（或题面重排版标题）
-- 题面信息聚焦：框选条件/问法/关键图形
-- 题面净化：Transform 成清爽排版版本
-- 解题主线：逐步推导（每步一个视觉“落点”）
-- 结果汇总：框出最终答案 + 条件回扣（可选：检验/讨论）
-
-4) 场景对象清单（Mobject 级别清单，必须）
-以“可写成代码”的粒度列出对象，要求包含变量名建议、类型、样式、布局与复用关系：
-- 全局对象（复用）：title、subtitle、watermark、page_frame、step_index、highlight_box 等
-- 题面对象：
-  - img_problem（ImageMobject，原题图，可选）
-  - stmt_group（重排版题面 VGroup：Text/Tex/MathTex）
-  - fig_group（几何/示意图对象集合，若有）
-- 解题对象：
-  - eq_1, eq_2, ...（每一步公式）
-  - note_1, note_2, ...（解释性短句）
-  - mark_assumption / mark_key（框选、下划线、箭头、颜色高亮）
-
-每个对象必须给：
-- 类型：Text/Tex/MathTex/Line/Arrow/SurroundingRectangle/Brace/Axes/NumberPlane/ImageMobject 等
-- 样式：颜色（hex 或 Manim 常量）、stroke_width、fill_opacity、font、font_size、buff
-- 布局：to_edge/next_to/align_to/shift/scale 的相对描述
-- 复用说明：哪些对象只创建一次，哪些是 Transform 的目标
-
-5) 动画事件时间轴（ManimGL 动作词 + 参数，必须）
-按顺序列出可直接映射到 ManimGL 的事件。每条事件必须包含：
-- 时间点（绝对秒或相对序号）
-- 动作类型：ShowCreation / FadeIn / FadeOut / Write / Transform / ReplacementTransform / Indicate / Wiggle / Flash / ApplyMethod / MoveToTarget / Uncreate 等
-- 参数：run_time、rate_func、lag_ratio、path_arc（如有）
-- 并行动画：同一个 self.play(...) 里有哪些动画同时发生
-- 与字幕同步：该事件对应哪句字幕（subtitle_id）
-
-要求：
-- 对“题面重排版”必须指定：TransformMatchingTex / ReplacementTransform / FadeTransformPieces 或简单 Fade。
-- 对“推导链”必须说明：新公式是 Write 还是由旧公式 Transform 而来（减少跳变）。
-
-6) 相机与构图（若需要，必须）
-若你希望“框选题面细节/放大图形/推导区分屏”，则必须输出：
-- 初始 camera frame：位置、缩放（scale 或 width/height 的相对说明）
-- 每次镜头运动：起止时间、目标区域、缓动函数
-- 推荐写法（ManimGL）：self.play(self.camera.frame.animate.scale(...).move_to(...), ...)
-- 是否需要“跟随对象”：例如跟随当前推导行、或在图形局部放大
-
-7) 字幕文稿与旁白稿要求（强制：用于你的工作流）
-7.1 字幕清单格式（必须）
-- 以表格或 YAML/JSON 形式输出，每条字幕包含：
-  - id：S001, S002, ...
-  - t_start：起始时间（mm:ss 或秒）
-  - t_end：结束时间
-  - text：一句话字幕（中文为主，允许夹公式）
-  - mode：title / subtitle / narration / equation_hint
-  - on_screen：是否同步上屏（true/false）
-  - action_hint：建议动作
-  - anchor：字幕摆放策略（bottom_center / top_left 等）
-  - pace_note：语速说明（快/中/慢）
-- 第一条：Write
-- 后续：Transform 上一句 → 下一句
-
-7.2 字幕时长生成规则（必须写明并执行）
-- 开场字幕：5 字/秒（或等效英文 12–15 chars/s）
-- 正文讲解：4.5 字/秒
-- 公式/符号密集句：按“有效字数”折算
-- 一个 LaTeX 公式块按 8–12 个字等效（取中值 10，或你自行解释采用的换算）
-- 每句最短时长：1.6s（避免闪烁）
-- 句与句之间可留 0.1–0.2s 缓冲
-- 必须输出：每句字数估计/折算字数/时长/总时长
-
-7.3 字幕内容规范（必须）
-- 一句只表达一个动作意图：读题、提取条件、设变量、列方程、代入、化简、得结论、检验等
-- 避免长句：超过 22–26 字建议拆分两句（各自时间戳）
-- 公式建议“口语化 + 局部上屏公式”配合
-- 若图片内容有不确定处：字幕中必须显式写 【此处题面不清晰：…】，并给替代版本字幕
-
-8) 解题内容输出粒度要求（图片题通常需要）
-- 必须提供两套解题粒度（供我选其一；若我没选，你默认考试版）
-  - 考试版（默认）：步骤少但逻辑闭合；每步落到一个等式/结论
-  - 讲解版（可选）：补充关键解释、常见坑、条件为什么要这样用
-- 每一步对应一个 Step 编号：Step1/Step2/...
-- 每个 Step 绑定：
-  - equation_tex（可为空）
-  - explain_text（一句字幕版本）
-  - visual_action（框选/高亮/箭头指向/变色）
-
-9) 全局风格规范（Style Guide，必须）
-- 背景：深色纯色或轻微渐变（避免干扰题面）
-- 字体策略：中文 Text：思源黑体/微软雅黑（优先可用者）；英文/数字：Arial；公式用 LaTeX
-- 字号层级（示例，可给具体数值）：标题 48–56，正文 34–40，注释 28–32，角标/编号 24–28
-- 线宽层级：主线 4，辅助线 2–3，高亮框 6
-- 高亮色策略：只用 1–2 个强调色；关键条件/关键等式/最终答案颜色一致
-- 留白规则：推导区不超过屏幕高度 70%，避免顶到边缘
-
-10) 给“代码生成 AI”的最终总 Prompt（必须，可直接粘贴）
-在输出最后，你必须再给一段“总 Prompt”，其结构固定为：
-- 强制：ManimGL（3b1b 系）
-- 场景类：建议使用 InteractiveScene 或用户自定义 AutoScene
-- 必须实现：
-  - 原题图导入（可选开关）
-  - 题面重排版对象生成
-  - Shot List 严格按时间轴执行
-  - 字幕系统：第一句 Write，其余 Transform（与时间戳绑定）
-  - 关键对象变量命名与分组（便于复用 TransformMatchingTex）
-  - 关键参数可配置（字体、字号、颜色、run_time、语速）
-- 并附上：
-  - 字幕数据结构建议（list[dict] 或 YAML）
-  - 时间控制策略（按 t_start/t_end 驱动 wait() 或自定义 time tracker）
-  - 若有不确定内容：实现 A/B 两套开关（例如 USE_ORIGINAL_IMAGE=True / False）
-
-解析策略要求（针对图片题，额外补充）
-- 任何“可能抄错一个符号就会变题”的地方（±、上下标、积分上下限、向量箭头、集合符号、开闭区间）必须做 confidence 标注
-- 若图中有手写：必须提供“手写转标准数学符号”的映射表（例如：像 v 的到底是 ν 还是 v）
-- 若图片含多题：必须先拆分题号，再分别输出上述 1–10 项；最后提供一个“总目录镜头”可选
-```
-
-### 5.3 AI-1（视频解析）：高精度提示词包 + JSON
+### 5.2 AI-1（视频解析）：高精度提示词包 + JSON
 
 ```markdown
 请对我提供的视频进行内容解析与可复现抽象，输出一份“可直接交给另一个 AI 生成 ManimGL 动画代码”的高精度提示词包，并附最终 JSON 时间轴。解析需覆盖画面元素、分镜结构、动画顺序、时间节奏与文字/公式细节，确保在 ManimGL 中能够被工程化复刻（允许少量视觉近似，但信息结构与时序必须一致）。
@@ -452,7 +440,7 @@ def construct(self):
 - visual_action 限定集合；一句一动作，确保可驱动画面。
 ```
 
-### 5.4 AI-1（PPT 解析）：高精度提示词包 + JSON
+### 5.3 AI-1（PPT 解析）：高精度提示词包 + JSON
 
 ```markdown
 我将上传一个 .pptx。请你逐页解析该 PPT 的内容细节与呈现逻辑，抽象出可在 ManimGL（3Blue1Brown 体系）中工程化复刻的动画方案。允许少量视觉近似，但信息结构、相对布局、出现顺序、关键变换与节奏必须一致。
@@ -499,47 +487,248 @@ def construct(self):
 - visual_action 限定集合；一句一动作，确保可驱动画面。
 ```
 
-### 5.5 AI-2（ManimGL/AutoScene 代码生成）：严格版提示词
+### 5.4 AI-2（ManimGL/AutoScene 代码生成）：严格版提示词
 
 ```markdown
 你是 ManimGL（manimlib）工程师，请将我提供的 timeline JSON 转为可运行的 AutoScene 代码，竖版 1080x1920，一场景即可。
 
-硬性规范（必须全部满足）：
+# ⚠️ 【最高优先级】六块布局规范（必须严格遵守）
+
+```
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃  🔒 Title (标题区)                              ┃ fix_in_frame
+┃  ━━━ Divider (分割线) ━━━━━━━━━━━━━━━━━━━━━━━━━ ┃ fix_in_frame
+┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
+┃  📋 Problem (题目区)                            ┃ 不固定
+┃     └─ 题目文字、条件、小问                     ┃
+┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
+┃  📊 Viz (可视化区) ← 必须有 updater + 图形！    ┃ 不固定
+┃     └─ ValueTracker + DecimalNumber 动态数值    ┃
+┃     └─ 抽象图形：用简化图标描述题目元素         ┃
+┃        鸡🐔=黄圆+三角嘴+两个线条脚 兔🐰=灰椭圆+长耳+四个线条脚         ┃
+┃        点=Dot 区域=Rectangle 向量=Arrow         ┃
+┃     └─ 动态动画：图形数量/位置随数值变化        ┃
+┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
+┃  📝 Derivation (推导区) ← 公式居中！            ┃ 不固定
+┃     └─ 推导公式（居中对齐，不要左对齐）         ┃
+┃     └─ TransformMatchingShapes 变换             ┃
+┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
+┃  🔒 Subtitle (字幕区)                           ┃ fix_in_frame (AutoScene管理)
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+```
+
+**布局硬性要求**：
+- 六块顺序：Title/Divider/Problem/Viz/Derivation/Subtitle
+- Problem/Viz/Derivation 三区必须存在且**均匀分布**
+- **⚠️ Viz 可视化区域必须始终保持存在，不能消失！** 推导区在 Viz 下方进行
+- Viz 区域必须包含：
+  - 至少一个 updater（ValueTracker/DecimalNumber/游标）
+  - **抽象图形表示**：用简化几何图形描述题目元素
+    - 鸡=黄色圆+三角嘴+**2条腿（Line）**
+    - 兔=灰色椭圆+长耳+**4条腿（Line）**
+    - 腿数必须可视化（用 Line 绘制，颜色 ORANGE）
+  - 图形数量/位置随数值变化
+- Derivation 区域公式必须**居中对齐**（`.set_x(0)`），禁止左对齐
+- 固定元素：Title/Divider/Subtitle/网格/红绿灯 使用 fix_in_frame；题目/推导/可视化默认不固定
+- **边距规范**：标题区 `0.4`、分割线 `0.2`、内容区 `0.15`、左右 `0.2`
+- **文本宽度**：W=frame_w-2m（m=左右边距），AutoWrap 先控 max_w≈0.95W，目标填充≈0.92W（最低 0.85W）
+- **垂直压缩优先级**：空间不足时缩 Subtitle→Derivation→Problem，Viz 保底高度≥0.28*frame_h
+- **最终对齐**：内容组整体左对齐
+
+## 📐 均匀分布 API（⚠️ 必须使用）
+
+```python
+# 1. 先创建所有内容块（不设置位置）
+problem_group = VGroup(problem, method_title).arrange(DOWN, buff=0.15)
+viz_group = create_viz_content()  # 可视化区域
+derivation_group = create_derivation_content()  # 推导区域
+
+# 2. 使用 layout_content_blocks 均匀分布三区（自动放大 viz 到 88% 宽度）
+layout_info = self.layout_content_blocks(
+    problem=problem_group,
+    viz=viz_group,
+    derivation=derivation_group,
+    divider=divider,
+    align_left=False,           # 居中对齐
+    scale_viz=True,             # 自动放大 viz（默认 True）
+    viz_width_ratio=0.88,       # viz 目标宽度比例（默认 88%）
+)
+# 返回值: {"top_y", "bottom_y", "gap", "centers", "mode"}
+
+# 3. 调整 problem 左对齐（如需要）
+problem_group.to_edge(LEFT, buff=0.2)
+```
+
+## ⚠️ 遮挡处理规范（重要）
+
+**防御性手段**：当元素过多、字号大或背景网格干扰公式阅读时，**必须**为文字/公式添加黑色背景块以确保清晰度。
+
+### 1. 为文字/公式添加黑色背景（BackgroundRectangle）
+```python
+from manimlib import BackgroundRectangle
+
+# 推荐写法：创建带背景的文字组
+text = Tex(r"重要公式", font_size=42)
+bg = BackgroundRectangle(text, fill_opacity=0.9, buff=0.15)
+text_with_bg = VGroup(bg, text)  # 背景在下，文字在上
+```
+
+### 2. 动态降低背景透明度 (Opacity Dimming)
+当推导公式可能与背景的可视化区域产生重叠时，动态降低背景图标/图像的透明度（如从 1.0 降到 0.3），以确保前景公式极度清晰。
+
+```python
+# 使用 ValueTracker 控制背景透明度
+opacity_tracker = ValueTracker(1.0)
+viz_group.add_updater(lambda m: m.set_opacity(opacity_tracker.get_value()))
+
+# 当开始推导重要公式时，淡化背景
+self.play(opacity_tracker.animate.set_value(0.3), run_time=1)
+# ... 进行公式演示 ...
+# 后期如需强调可视化，再恢复
+self.play(opacity_tracker.animate.set_value(1.0), run_time=1)
+```
+
+### 3. 字号规范（硬性要求）
+- **公式最小默认字号：42**（确保在手机刷视频时清晰可见）
+- 关键结论/答案字号：44-48
+- 标题区域字号：24-28
+- 题目描述字号：22-26
+
+## 📊 Viz 可视化区域详细规范
+
+### 基础可视化（所有题目必备）
+
+```python
+# ValueTracker + DecimalNumber 动态数值
+tracker = ValueTracker(初始值)
+count = DecimalNumber(初始值, num_decimal_places=0, font_size=18)
+count.add_updater(lambda m: m.set_value(tracker.get_value()))
+
+# 动态演示
+self.play(tracker.animate.set_value(目标值), run_time=3)
+```
+
+### 函数题目专用 API（⚠️ 函数题必须使用）
+
+```python
+from new_class.auto_scene import (
+    create_stealth_axes,        # 创建 TikZ 风格坐标轴
+    create_glow_surrounding_rect,  # 辉光方框
+    is_gpu_glow_available,      # 检测 GPU 辉光支持
+)
+
+# 1. 创建坐标轴（StealthTip 箭头风格）
+stealth_axes = create_stealth_axes(
+    x_range=[-6, 6, 1],
+    y_range=[-6, 6, 1],
+    axis_config={"stroke_width": 1.5, "color": WHITE},
+    tip_config={"tip_length": 0.25, "tip_width": 0.2, "back_indent": 0.3},
+    width=4.0,
+    height=4.0,
+).move_to(UP * VIZ_Y)
+
+# 获取底层 Axes 对象
+axes = stealth_axes.axes
+
+# 添加轴标签
+x_label = Tex("x", font_size=16).next_to(stealth_axes.x_tip, RIGHT, buff=0.1)
+y_label = Tex("y", font_size=16).next_to(stealth_axes.y_tip, UP, buff=0.1)
+
+# 2. 动态曲线（参数随 ValueTracker 变化）
+b_tracker = ValueTracker(0)
+
+def get_dynamic_curve():
+    b = b_tracker.get_value()
+    return axes.get_graph(
+        lambda x: x**2 + b*x,
+        x_range=[-5, -0.1],
+        color=BLUE,
+        stroke_width=2
+    )
+
+dynamic_curve = always_redraw(get_dynamic_curve)
+self.add(dynamic_curve)
+
+# 动画：参数从 0 变化到 4
+self.play(b_tracker.animate.set_value(4), run_time=3)
+
+# 3. GPU 辉光曲线（高级效果）
+if is_gpu_glow_available():
+    glow_curve = stealth_axes.get_glow_graph(
+        function=lambda x: x**2 + 4*x,
+        x_range=[-5.5, -0.1],
+        color=BLUE,
+        n_samples=500,
+    )
+    self.add(glow_curve)
+
+# 4. 关键点辉光
+if is_gpu_glow_available():
+    glow_dots = stealth_axes.get_glow_dots(
+        coords=[(2, 4), (-2, -4)],
+        colors=[YELLOW, YELLOW],
+        glow_width=0.3,
+    )
+    self.add(glow_dots)
+
+# 5. 关键点标签 + 辉光背景
+point_label = Tex("(2,4)", font_size=14)
+point_label.move_to(axes.c2p(2, 4) + UR * 0.2)
+point_bg = create_glow_surrounding_rect(
+    point_label, color=RED, buff=0.03,
+    stroke_width=1, fill_opacity=0.6,
+)
+self.play(FadeIn(point_bg), Write(point_label))
+```
+
+### 题型对应可视化
+
+| 题型 | 可视化内容 | 必用 API |
+|-----|-----------|---------|
+| 鸡兔同笼 | 鸡兔图标+腿+数量 | VGroup, Circle, Line, DecimalNumber |
+| 函数 | 坐标轴+动态曲线+关键点 | create_stealth_axes, get_graph, always_redraw |
+| 概率 | 样本空间网格+标记点 | NumberPlane, Rectangle, Dot |
+| 几何 | 几何图形+标注 | Polygon, Line, Arrow, Tex |
+| 数列 | 序列图+递推箭头 | VGroup, Arrow, DecimalNumber |
+
+# 硬性规范（必须全部满足）
+
 1) 使用 AutoScene：字幕+TTS 同步；实现 play_t/wait_t/wait_until 驱动时间轴，误差 ≤0.2s；TTS 气口 0.5s；尽量少用 self.wait，仅允许阶段末使用，用动画 run_time 拉齐时间轴。
-2) 配音与字幕分离必须支持：speak/speak_with_highlight 中使用 text/subtitle；TTS 文案口语化、字幕更数学化。
-3) Tex 禁用 \div，用 ÷；向量用 \overrightarrow{...}；中文 Text 用 STKaiti；数字/字母/公式一律用 Tex；Text 上色用 t2c/text2color；字幕重点用 color_map。
-4) 颜色策略：默认文字 WHITE，仅 1 种强调色（建议 RED），强调约 2s 后恢复 WHITE。
-5) 相似物体用 Transform/TransformMatchingTex/TransformMatchingShapes；公式首行/无联系用 Write；默认动画 rate_func=smooth, run_time=2（每个 self.play 显式写出）。
-6) 坐标轴 include_ticks=False，include_tip=False（如无箭头需求）；x_range/y_range 比例与 width/height 等比，保证单位长度一致。
-7) 六块布局（自适应）：Title/Divider/Problem/Viz/Derivation/Subtitle
-   - **固定区域**（使用相对定位）：
-     - Title: `.to_edge(UP, buff=0.2)` + `fix_in_frame()`
-     - Divider: `.next_to(title, DOWN, buff=0.1)`，宽度=`frame_width*0.95` + `fix_in_frame()`
-     - Subtitle: 由 AutoScene 管理，`.to_edge(DOWN)` + 自动换行高度
-   - **内容区域**（均匀分布）：Problem/Viz/Derivation
-     - 使用 `self.layout_content_blocks(problem, viz, derivation, divider=divider)`
-     - 算法：divider 底部到 subtitle 顶部的空间内，等间距分布三块中心
-   - **简化调用**：`title, divider = self.create_title_divider("【高考真题·概率】")`
-   - **左右边距**：`.to_edge(LEFT, buff=0.2)` 或使用 `LAYOUT_EDGE_BUFF`
-8) 推导区最后一行必须在字幕上方：使用 `self.get_subtitle_top_y()` 动态获取字幕顶部坐标，确保不重叠。
-9) 可视化区至少 1 个 updater 持续运行（ValueTracker+DecimalNumber、游标等），每段重置目标值；静态内容必须加入轻量动态（呼吸高亮/游标/相机微平移等）。
-10) 配音段必须有画面动作（Indicate/框选/相机/呼吸高亮），不得长时间静止；开场需“配音+动画+音效”同时出现（如启用音效）。
-11) 可视化标签用彩色背景突出；固定标注用 add_fixed_annotation；需要跟随则用 add_fixed_annotation_dynamic。
-12) 标题/题目/分割线/推导/字幕/字幕背景默认 fix_in_frame；可视化区不固定。
-13) 字幕用 AutoScene：speak/speak_with_highlight 或 subtitle 管线；字幕第一句 Write，后续 Transform。
-14) 代码组织：类开头常量区（位置/大小/缩放可调），construct 只做流程调度，setup_scene + phaseN 方法；每阶段前半创建物体，后半统一动画；阶段末清理临时对象，保留共享对象；遮挡关系取决于 self.add 顺序；每阶段开头保留检查机制。
-15) 自检输出：打印标题/目标时长/事件信息；可打印每条时间戳便于核对。
-16) 需要音效可选 SoundLibrary（若不可用需兼容无音效）；支持 set_animation_sounds_enabled / set_add_sounds_enabled / set_sound_gain。
-17) 输出代码要求：完整导入所需模块；中文注释清晰；配音文稿自然流畅；适当使用视觉引导增强效果；代码可直接运行。
-18) **遮挡关系取决于 self.add 的顺序**：后 add 的对象 → 在上层 → 遮挡先 add 的对象。
-19) **动画播放顺序取决于 self.play 的顺序**：前play的在上层，后play的在下层，被遮挡
-        self.play(
-  
-            ShowCreation(right_arrow),
-            ShowCreation(left_arrow),
-            run_time=2
-        )
-20)  高亮line2[1:6]不用line3[0][-9:]
+
+2) **数学符号规范（⚠️ 重要）**：
+   - ❌ 禁止使用 `\div`（ManimGL 渲染不正确）
+   - ✅ 必须直接使用 `÷` 符号（Unicode: U+00F7）
+   - 示例：`Tex(r"12 ÷ 2 = 6")` 而非 `Tex(r"12 \div 2 = 6")`
+   - 向量用 `\overrightarrow{...}`
+   - 中文 Text 用 STKaiti
+   - 包含复杂公式一律用 Tex
+   - Tex 上色要另起一行，切片数组单独上色
+
+3) 颜色策略：默认文字 WHITE，仅 1 种强调色（建议 RED），强调频率每阶段 1–2 次，约 2s 后恢复 WHITE。
+
+4) 动画选择：相似物体用 Transform/TransformMatchingTex/TransformMatchingShapes；公式首行/无联系用 Write；默认 rate_func=smooth, run_time=2（每个 self.play 显式写出）。
+
+5) 坐标轴 include_ticks=False，include_tip=False（如无箭头需求）；x_range/y_range 比例与 width/height 等比，保证单位长度一致。
+
+6) 推导区最后一行必须在字幕上方：使用 `self.get_subtitle_top_y()` 动态获取字幕顶部坐标，确保不重叠。
+
+7) 可视化区至少 1 个 updater 持续运行（ValueTracker+DecimalNumber、游标等），每段重置目标值；静态内容必须加入轻量动态（呼吸高亮/游标/相机微平移等）。
+
+8) 配音段必须有画面动作（Indicate/框选/相机/呼吸高亮），不得长时间静止；开场需“配音+动画+音效”同时出现（如启用音效）。
+
+9) 可视化标签用彩色背景突出；固定标注用 add_fixed_annotation；需要跟随则用 add_fixed_annotation_dynamic。
+
+10) 代码组织：类开头常量区（位置/大小/缩放可调），construct 只做流程调度，setup_scene + phaseN 方法；每阶段前半创建物体，后半统一动画；阶段末清理临时对象，保留共享对象；每阶段开头保留检查机制。
+
+11) 自检输出：打印标题/目标时长/事件信息；可打印每条时间戳便于核对。
+
+12) 需要音效可选 SoundLibrary（若不可用需兼容无音效）；支持 set_animation_sounds_enabled / set_add_sounds_enabled / set_sound_gain。
+
+13) 输出代码要求：完整导入所需模块；中文注释清晰；配音文稿自然流畅；适当使用视觉引导增强效果；代码可直接运行。
+
+14) 层级规则：遮挡关系由 self.add 顺序决定（后 add 在上层）；self.play 顺序仅影响时间，不改变层级。
+
+15) Tex 切片高亮示例（优先使用线性切片，避免不稳定嵌套索引）：
 例如：
       line2 = Tex(
             r"\text{点 } (2,4) \text{ 在函数 } f(x) \text{ 的图象上。}",
@@ -552,41 +741,63 @@ def construct(self):
             font_size=self.PROBLEM_FONT_SIZE
         )
         line3[0][-9:].set_color(self.HIGHLIGHT_COLOR)  # 公式高亮
-输出：仅代码，不要解释。请在代码里内联 JSON（或假设变量 timeline），并严格按时间轴执行。
 JSON：<粘贴 timeline JSON>
+
+【配音与字幕分离规范】
+- speak()/speak_with_highlight() 或 subtitle 管线；text 作为口语化 TTS 文稿、subtitle 作为数学化上屏
+- 字幕动画：第一句 Write，后续 Transform 上一句 → 下一句
+- 常见映射：
+  - 坐标：text="坐标 2 4"，subtitle="(2, 4)"
+  - 小于：text="x 小于 0"，subtitle="x < 0"
+  - 平方：text="x 平方"，subtitle="x²"
+  - 函数：text="f x 等于"，subtitle="f(x) ="
+示例：
+```python
+self.speak(
+    text="f 2 等于 4",
+    subtitle="f(2) = 4",
+)
 ```
 
-### 5.6 提示词补丁（可直接拼进总 Prompt）
+【动画衔接与引导】
+- 重点覆盖：所有屏幕文字至少被 Indicate 或高亮一次。
+- 引导方框：使用 `focus_guide` 或 `focus_guide_with_camera` 进行视线引导；方框颜色轮询。
+- 呼吸点：关键数据或游标建议使用 `create_breathing_glow_dot`。
+- 标注：使用 `add_curved_annotation` 且开启 `use_glow=True`。
 
-#### 5.6.1 排版与动态补丁
+【Tex 自动换行与公式完整性】
+换行阈值：每行≤16个等效字符（中文1字=1单位，英文2字符=1单位，行内公式整体按10单位计且不可拆）
 
-```markdown
-排版强约束：六块顺序 Title/Divider/Problem/Viz/Derivation/Subtitle；左右边距≤画幅 5%(≤0.2)，安全宽 W=frame_w-2m，目标占宽 92~95%，先换行控 max_w=0.95W，再合并/放大到 target_fill≈0.92W，避免细长条；统一 buff 垂直排列，gap 不够时优先缩 Subtitle→Derivation→Problem，Viz 保底高度≥0.28*frame_h，最终 group 左对齐。
+换行优先级：
+1. 数学符号前后（如 ∈、∪、= 前后）
+2. 标点后（，。；）
+3. 虚词后（"的"、"是"、"在"、"与"、"和"）
+4. 行内公式前后（公式块本身不拆）
 
-可视化动态：每段至少 1 个 updater（ValueTracker+DecimalNumber、游标沿路径、呼吸高亮等），按时间段重置目标值，配音段不得静止。
+禁止：
+- 在 $...$ 内部换行
+- 在 \text{...} 内部中间换行
+- 产生只有1-2字的碎片行
+- 单行过长 Tex（超过屏幕 90%）
+- 使用 stretch_to_fit_width 强制压缩（会变形）
+
+代码实现示例：
+```python
+# ✅ 正确：多行分别创建（公式不拆）
+problem_lines = [
+    r"\text{17. (10分) 已知函数 } f(x) \text{ 是定义在}",
+    r"(-\infty,0) \cup (0,+\infty) \text{ 上的奇函数，}",
+    r"\text{点 } (2,4) \text{ 在函数 } f(x) \text{ 的图象上。}",
+    r"\text{当 } x < 0 \text{ 时，} f(x) = x^2 + bx",
+]
+
+problem_group = VGroup(*[
+    Tex(line, font_size=24) for line in problem_lines
+]).arrange(DOWN, buff=0.12, aligned_edge=LEFT)
+
+# 高亮第3行的 (2,4)
+problem_group[2][1:6].set_color(YELLOW)
 ```
-
-#### 5.6.2 配音与字幕分离补丁
-
-```markdown
-配音与字幕分离：speak()/speak_with_highlight() 中用 text 作为 TTS 文稿、subtitle 作为屏幕显示。
-- 负号：text="f 负 2 等于 负 4"，subtitle="f(-2) = -4"
-- 等号：text="a 等于 5"，subtitle="a = 5"
-- 坐标：text="坐标 2 4"，subtitle="(2, 4)"
-- 小于：text="x 小于 0"，subtitle="x < 0"
-- 平方：text="x 平方"，subtitle="x2"
-```
-
-#### 5.6.3 “同质化特征”提取提示
-
-```markdown
-从给定代码/视频中提取可复刻特征，生成简明 md：
-- 字体策略（如 Text 用 STKaiti）
-- 动画衔接（相似物体 Transform，避免 FadeOut+FadeIn）
-- 代码组织（常量区 + construct 调度 + phaseN 方法 + 时间驱动三件套）
-- 颜色/高亮策略（默认白，强调短暂变红）
-- 时间对齐策略（按时间轴播放/等待）
-要求输出：紧凑 bullet，供其他 AI 复用风格。
 ```
 
 ## 6. 代码骨架与算法模板（可直接复用）
@@ -647,19 +858,20 @@ class 场景名(AutoScene):
     def setup_scene(self):
         self.enable_debug(True)
         self.set_subtitle_style(font_size=22, edge_buff=0.3)
+        self.set_animation_sounds_enabled(True)  # 启用动画音效
         self.shared_objects = {}
 
     def phase1_title(self):
-        # 先创建对象并摆放，再统一动画
-        pass
+        # ✅ 使用内置方法创建标题和分割线
+        title, divider = self.create_title_divider("【高考真题·函数】")
+        self.play(FadeIn(title), ShowCreation(divider))
+        self.set_shared("title", title)
+        self.set_shared("divider", divider)
 
     def phase2_problem(self):
-        pass
-
-    def phase3_viz_and_derivation(self):
-        pass
-
-    def phase4_summary(self):
+        # ✅ 使用 get_shared 获取前序对象
+        divider = self.get_shared("divider")
+        # 创建内容并布局...
         pass
 ```
 
@@ -749,53 +961,6 @@ def add_dynamic_indicator(self, viz_group, t_start, t_end):
     self.play(t.animate.set_value(1), run_time=t_end - t_start, rate_func=linear)
 ```
 
-### 6.5 自检输出模板
-
-```python
-def construct(self):
-    # 渲染前自检
-    print("="*50)
-    print(f"视频标题: {self.meta['title']}")
-    print(f"目标时长: {self.timeline[-1]['end']}s")
-    print("="*50)
-
-    for e in self.timeline:
-        duration = e['end'] - e['start']
-        if duration < 0:
-            raise ValueError(f"负时长！事件: {e['scene_id']}")
-        print(f"[{e['start']:.1f}-{e['end']:.1f}] {e['visual_action']}: {e['narration'][:20]}...")
-```
-
-## 7. 专项任务：音稿时间戳同步
-
-### 7.1 任务目标
-
-1) 根据文稿时间戳，Indicate 对应屏幕已有的文本对象，所有显示在屏幕上的文本对象都需要被强调至少一遍
-2) 简略屏幕上已有的文本对象内容，以便字号更大
-3) 文字颜色默认 WHITE，只在重点短暂变色
-4) 时间轴严格对齐（核心）
-5) 额外输出一份“保留原版可视化逻辑”的修改版代码文件
-6) 动画总时间控制为 126s
-7) 加入 `print()` 每一个时间戳的逻辑
-8) 尽量少使用 `self.wait()`，只允许在阶段结束时使用
-
-### 7.2 具体实现要点
-
-- 颜色策略：默认 WHITE，仅 1 种强调色（建议 RED），强调持续 2s 后恢复 WHITE
-- 时间轴对齐：使用时间轴驱动器三件套（见 6.1），误差 ≤ 0.2s
-- 文本精简：缩短字幕/文本内容以提升字号与可读性
-- 强调覆盖：所有屏幕文字至少被 Indicate 一次
-- 提取音稿及其起止时间戳，列出更细粒度时间轴清单
-
-## 8. 待办事项
-
-- [ ] 常用音效库整理
-- [ ] 配音网站推荐列表
-- [ ] 视频剪辑模板
-- [ ] ManimGL 代码模板库
-- [ ] 常用音效库整理（附 `SoundLibrary` 类）
-- [ ] JSON Schema 校验工具
-- [ ] 时间轴可视化预览工具
 
 ---
 

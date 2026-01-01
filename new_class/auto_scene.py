@@ -27,17 +27,59 @@ import random
 import hashlib
 import glob
 import numpy as np
-from manimlib import Scene, Text, Write, Transform, FadeOut, FadeIn, ValueTracker, DecimalNumber,InteractiveScene
-from manimlib import VGroup, RoundedRectangle, ShowCreation, Rectangle, Line, Circle
-from manimlib import DOWN, UP, LEFT, RIGHT, ORIGIN, WHITE, BLACK, YELLOW, RED, BLUE, GREEN, GREY, UR, UL, DR, DL
-from manimlib import Indicate, FocusOn, ApplyWave, Restore
-from manimlib import SurroundingRectangle, Underline, ShowPassingFlash
-from manimlib import DEGREES
-from manimlib import CurvedArrow, Arrow, Group, ReplacementTransform
-from manimlib import Arc, TAU, ArcBetweenPoints
-from manimlib import VMobject, Axes, get_norm, angle_of_vector
-from manimlib import DEFAULT_ARROW_TIP_WIDTH, DEFAULT_ARROW_TIP_LENGTH
-from manimlib import GlowDot, interpolate
+from manimlib import (
+    Scene, Text, Write, Transform, FadeOut, FadeIn, ValueTracker, DecimalNumber,
+    InteractiveScene, VGroup, RoundedRectangle, ShowCreation, Rectangle, Line,
+    Circle, DOWN, UP, LEFT, RIGHT, ORIGIN, WHITE, BLACK, YELLOW, RED, BLUE,
+    GREEN, GREY, UR, UL, DR, DL, Indicate, FocusOn, ApplyWave, Restore,
+    SurroundingRectangle, Underline, ShowPassingFlash, DEGREES, CurvedArrow,
+    Arrow, Group, ReplacementTransform, Arc, TAU, ArcBetweenPoints, VMobject,
+    Axes, get_norm, angle_of_vector, DEFAULT_ARROW_TIP_WIDTH,
+    DEFAULT_ARROW_TIP_LENGTH, GlowDot, interpolate, Tex
+)
+
+# ==================== GPU Glow 可用性集中检查 ====================
+
+_GPU_GLOW_AVAILABLE = False
+_GPU_GLOW_CHECKED = False
+_TRACING_TAIL_AVAILABLE = False
+TracingTailPMobject = None  # 全局占位符
+
+def is_gpu_glow_available():
+    """检查 GPU 辉光效果是否可用 (缓存结果)"""
+    global _GPU_GLOW_AVAILABLE, _GPU_GLOW_CHECKED, _TRACING_TAIL_AVAILABLE, TracingTailPMobject
+    if _GPU_GLOW_CHECKED:
+        return _GPU_GLOW_AVAILABLE
+    
+    # 注入 shaderscene 路径
+    shaderscene_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "shaderscene")
+    if shaderscene_path not in sys.path:
+        sys.path.insert(0, shaderscene_path)
+    
+    try:
+        from mobject.glow_curve import GlowCurve
+        _GPU_GLOW_AVAILABLE = True
+        print("✅ GPU Glow (GlowCurve) 已加载")
+    except ImportError as e:
+        _GPU_GLOW_AVAILABLE = False
+        print(f"⚠️ GPU Glow 不可用: {e}")
+    
+    # 尝试导入 TracingTailPMobject
+    try:
+        from mobject.TracingTailPMobject import TracingTailPMobject as TTP
+        TracingTailPMobject = TTP
+        _TRACING_TAIL_AVAILABLE = True
+        print("✅ TracingTailPMobject 已加载")
+    except ImportError as e:
+        _TRACING_TAIL_AVAILABLE = False
+        TracingTailPMobject = None
+        print(f"⚠️ TracingTailPMobject 不可用: {e}")
+    
+    _GPU_GLOW_CHECKED = True
+    return _GPU_GLOW_AVAILABLE
+
+# 预先初始化检查
+is_gpu_glow_available()
 
 # ==================== StealthTip 坐标轴 API ====================
 
@@ -290,7 +332,7 @@ def create_stealth_axes(
         Returns:
             GlowCurve: 与坐标系对齐的辉光曲线
         """
-        if not _GPU_GLOW_AVAILABLE:
+        if not is_gpu_glow_available():
             # 回退到普通曲线
             return axes.get_graph(function, x_range=x_range, color=color)
         
@@ -341,7 +383,7 @@ def create_stealth_axes(
         Returns:
             GlowObjectPointCloud: 辉光点对象
         """
-        if not _GPU_GLOW_AVAILABLE:
+        if not is_gpu_glow_available():
             # 回退到普通点
             from manimlib import Dot
             return Dot(axes.c2p(x, y), color=color)
@@ -386,7 +428,7 @@ def create_stealth_axes(
         Returns:
             GlowObjectPointCloud: 辉光点云对象
         """
-        if not _GPU_GLOW_AVAILABLE:
+        if not is_gpu_glow_available():
             from manimlib import Dot, VGroup
             dots = VGroup()
             for i, (x, y) in enumerate(coords):
@@ -481,75 +523,42 @@ def create_stealth_axes_with_labels(
     return stealth_axes
 
 
-# ==================== GPU 辉光效果 API (基于着色器) ====================
+# ==================== 组件加载与可用性检查 ====================
 
 # 尝试导入 GPU 辉光效果组件
 try:
-    import sys
-    from pathlib import Path
-    # 添加 shaderscene 路径
-    _shader_path = str(Path(__file__).parent.parent / "shaderscene" / "mobject")
-    if _shader_path not in sys.path:
-        sys.path.insert(0, _shader_path)
-    
-    from glow_curve import GlowCurve, GlowFunctionGraph, GlowParametricCurve, GlowCircle, GlowSpiral
-    from glow_wrapper import GlowObjectPointCloud, GlowWrapperEffect, GlowLineStrip
-    
-    _GPU_GLOW_AVAILABLE = True
-except ImportError as e:
-    _GPU_GLOW_AVAILABLE = False
-    GlowCurve = None
-    GlowFunctionGraph = None
-    GlowParametricCurve = None
-    GlowCircle = None
-    GlowSpiral = None
-    GlowObjectPointCloud = None
-    GlowWrapperEffect = None
-    GlowLineStrip = None
+    from mobject.glow_curve import GlowCurve, GlowFunctionGraph, GlowParametricCurve, GlowCircle, GlowSpiral
+    from mobject.glow_wrapper import GlowObjectPointCloud, GlowWrapperEffect, GlowLineStrip
+except ImportError:
+    GlowCurve = GlowFunctionGraph = GlowParametricCurve = GlowCircle = GlowSpiral = None
+    GlowObjectPointCloud = GlowWrapperEffect = GlowLineStrip = None
 
 # 尝试导入 GlowDot 呼吸效果组件
 try:
-    _src_path = str(Path(__file__).parent / "src")
-    if _src_path not in sys.path:
-        sys.path.insert(0, _src_path)
+    src_path = os.path.join(os.path.dirname(__file__), "src")
+    if src_path not in sys.path:
+        sys.path.insert(0, src_path)
     
     from breathing_effects import (
-        BreathingMode,
-        create_breathing_glow_dot,
-        create_breathing_updater,
-        next_breathing_mode,
-        reset_breathing_mode,
-        BreathingModeManager,
-        BREATHING_RAINBOW_COLORS,
-        BREATHING_GLOW_FACTOR,
+        BreathingMode, create_breathing_glow_dot, create_breathing_updater,
+        next_breathing_mode, reset_breathing_mode, BreathingModeManager,
+        BREATHING_RAINBOW_COLORS, BREATHING_GLOW_FACTOR
     )
     _BREATHING_AVAILABLE = True
 except ImportError:
     _BREATHING_AVAILABLE = False
-    BreathingMode = None
-    create_breathing_glow_dot = None
-    create_breathing_updater = None
-    next_breathing_mode = None
-    reset_breathing_mode = None
-    BreathingModeManager = None
+    BreathingMode = create_breathing_glow_dot = create_breathing_updater = None
+    next_breathing_mode = reset_breathing_mode = BreathingModeManager = None
     BREATHING_RAINBOW_COLORS = None
     BREATHING_GLOW_FACTOR = 1.0
 
 # 尝试导入 TracingTailPMobject (辉光彗尾效果)
 try:
-    _tracing_path = str(Path(__file__).parent.parent / "shaderscene" / "mobject")
-    if _tracing_path not in sys.path:
-        sys.path.insert(0, _tracing_path)
-    from TracingTailPMobject import TracingTailPMobject
+    from mobject.TracingTailPMobject import TracingTailPMobject
     _TRACING_TAIL_AVAILABLE = True
 except ImportError:
     _TRACING_TAIL_AVAILABLE = False
     TracingTailPMobject = None
-
-
-def is_gpu_glow_available():
-    """检查 GPU 辉光效果是否可用"""
-    return _GPU_GLOW_AVAILABLE
 
 
 def create_glow_curve(
@@ -1643,124 +1652,12 @@ class AutoScene(InteractiveScene):
                     # 获取当前颜色
                     color = self._get_next_focus_box_color()
                     
-                    if effect == "box":
-                        # 辉光方框效果
-                        decoration = create_glow_surrounding_rect(
-                            target, 
-                            color=color, 
-                            buff=0.1,
-                            stroke_width=2,
-                            fill_opacity=0.2,
-                            n_glow_layers=4,
-                            max_glow_width=10,
-                            base_opacity=0.25,
-                        )
-                        anims.append(FadeIn(decoration))
+                    decoration, sub_anims = self._add_highlight_animation(
+                        target, effect, color, run_time=1.0 # 默认 1.0
+                    )
+                    anims.extend(sub_anims)
+                    if decoration:
                         highlight_decorations.append(decoration)
-                        
-                    elif effect == "underline":
-                        # 辉光扫描下划线效果 (GlowDot + 彗尾) - 单程扫描1次
-                        left_point = target.get_corner(DL) + DOWN * 0.08
-                        right_point = target.get_corner(DR) + DOWN * 0.08
-                        
-                        # 创建下划线参考线（半透明）
-                        underline_ref = Line(left_point, right_point, color=color, stroke_width=2)
-                        underline_ref.set_stroke(opacity=0.4)
-                        
-                        # 创建增强辉光点
-                        glow_dot = GlowDot(
-                            center=left_point,
-                            radius=0.35,           # 更大的辉光点
-                            color=color,
-                            glow_factor=2.5,       # 更强的辉光
-                        )
-                        
-                        # 位置追踪器
-                        sweep_tracker = ValueTracker(0)
-                        n_sweeps = 1  # 来回次数（1次=单程）
-                        
-                        def make_sweep_position_func(lp, rp, trk, n_sweeps):
-                            def get_pos():
-                                # t从0到1，映射为来回n_sweeps次的运动
-                                # 使用正弦函数实现平滑来回
-                                raw_t = trk.get_value()
-                                # 正弦来回：sin(π * n_sweeps * t) 的绝对值，但我们需要平滑来回
-                                # 使用 (1 - cos(2π * n_sweeps * t)) / 2 实现平滑来回
-                                # 或者简单地：t * n_sweeps % 1，然后三角波
-                                cycle_t = raw_t * n_sweeps * 2  # 每个来回是2个单程
-                                cycle_t = cycle_t % 2  # 0~2 范围
-                                if cycle_t > 1:
-                                    t = 2 - cycle_t  # 返程
-                                else:
-                                    t = cycle_t  # 去程
-                                x = interpolate(lp[0], rp[0], t)
-                                return np.array([x, lp[1], 0])
-                            return get_pos
-                        
-                        get_sweep_pos = make_sweep_position_func(left_point, right_point, sweep_tracker, n_sweeps)
-                        
-                        def make_dot_sweep_updater(pos_func):
-                            def updater(dot):
-                                dot.move_to(pos_func())
-                            return updater
-                        
-                        glow_dot.add_updater(make_dot_sweep_updater(get_sweep_pos))
-                        
-                        # 创建增强彗尾效果
-                        if _TRACING_TAIL_AVAILABLE:
-                            sweep_tail = TracingTailPMobject(
-                                traced_point_func=get_sweep_pos,
-                                max_tail_length=60,        # 更长的尾巴
-                                tail_lifetime=0.6,         # 更长的尾巴寿命
-                                base_color=color,
-                                opacity_fade=(1, 0.0),   # 更亮的起始
-                                width_fade=(0.2, 0.01),   # 更粗的尾巴
-                                glow_factor=2.5,           # 更强的辉光
-                            )
-                            
-                            def make_tail_sweep_updater():
-                                def updater(mob, dt):
-                                    mob.update_tail(dt)
-                                return updater
-                            
-                            sweep_tail.add_updater(make_tail_sweep_updater())
-                            decoration = Group(underline_ref, sweep_tail, glow_dot)
-                        else:
-                            decoration = Group(underline_ref, glow_dot)
-                        
-                        # 扫描动画：tracker从0到1，内部会自动来回3次
-                        anims.append(FadeIn(underline_ref))
-                        anims.append(FadeIn(glow_dot))
-                        anims.append(sweep_tracker.animate.set_value(1))
-                        highlight_decorations.append(decoration)
-                        
-                    elif effect == "indicate":
-                        # Indicate 缩放+变色效果
-                        anims.append(Indicate(target, color=RED, scale_factor=1.5))
-                        
-                    elif effect == "focus":
-                        # 聚光灯效果
-                        anims.append(FocusOn(target, color=color, opacity=0.2))
-                        
-                    elif effect == "wave":
-                        # 波浪效果
-                        anims.append(ApplyWave(target, direction=UP, amplitude=0.15))
-                        
-                    elif effect == "flash":
-                        # 颜色渐变闪烁效果：白->红->紫->白
-                        anims.append(self._create_flash_animation(target, n_cycles=1, duration=1.5))
-                        
-                    elif effect == "circumscribe":
-                        # 环绕描边效果 - 使用 ShowPassingFlash 替代不存在的 Circumscribe
-                        from manimlib import ShowPassingFlash, Rectangle
-                        rect = SurroundingRectangle(target, color=color, stroke_width=3, buff=0.1)
-                        anims.append(ShowPassingFlash(rect, run_time=1.0))
-                        
-                    elif effect == "grow":
-                        # 水波扩散光环效果（1.5秒）
-                        wave_anim, wave_rings = self._create_growing_halo(target, color=color, duration=1.5)
-                        anims.append(wave_anim)
-                        highlight_decorations.append(wave_rings)  # 记录以便清理
         
         # 动画时长（取音频时长的一部分，但不超过1.2秒）
         anim_duration = min(1.2, audio_duration * 0.5)
@@ -2291,85 +2188,176 @@ class AutoScene(InteractiveScene):
     
     # ==================== 文本高亮方法 ====================
     
+    def _add_highlight_animation(self, target, effect, color, run_time=1.0):
+        """
+        内部方法：为 speak 或 highlight_text 生成高亮动画和装饰物
+        
+        Returns:
+            (decoration, anims)
+        """
+        anims = []
+        decoration = None
+        
+        effects = ["box", "underline", "indicate", "focus", "wave", "flash", "circumscribe", "grow"]
+        if effect == "random":
+            effect = random.choice(effects)
+            
+        if effect == "box":
+            decoration = create_glow_surrounding_rect(
+                target, color=color, buff=0.1, stroke_width=2,
+                fill_opacity=0.2, n_glow_layers=4, max_glow_width=10, base_opacity=0.25,
+            )
+            anims.append(FadeIn(decoration, run_time=run_time))
+            
+        elif effect == "underline":
+            # 辉光扫描下划线
+            left_point = target.get_corner(DL) + DOWN * 0.08
+            right_point = target.get_corner(DR) + DOWN * 0.08
+            underline_ref = Line(left_point, right_point, color=color, stroke_width=2)
+            underline_ref.set_stroke(opacity=0.4)
+            
+            glow_dot = GlowDot(center=left_point, radius=0.4, color=color, glow_factor=3.0)
+            sweep_tracker = ValueTracker(0)
+            
+            def get_sweep_pos():
+                t = sweep_tracker.get_value()
+                x = interpolate(left_point[0], right_point[0], t)
+                return np.array([x, left_point[1], 0])
+                
+            glow_dot.add_updater(lambda d: d.move_to(get_sweep_pos()))
+            
+            # 调试信息
+            print(f"🔍 underline effect: _TRACING_TAIL_AVAILABLE={_TRACING_TAIL_AVAILABLE}")
+            print(f"🔍 TracingTailPMobject={TracingTailPMobject}")
+            
+            if _TRACING_TAIL_AVAILABLE and TracingTailPMobject is not None:
+                print("✅ 使用 TracingTailPMobject 创建彗尾效果")
+                print(f"   📐 width_fade=(0.5, 0.02), glow_factor=4.0")
+                sweep_tail = TracingTailPMobject(
+                    traced_point_func=get_sweep_pos, max_tail_length=100,
+                    tail_lifetime=0.8, base_color=color, opacity_fade=(1.0, 0.2),
+                    width_fade=(0.1, 0.02), glow_factor=4.0,  # 更明显的粗细渐变
+                )
+                sweep_tail.add_updater(lambda m, dt: m.update_tail(dt))
+                decoration = Group(underline_ref, sweep_tail, glow_dot)
+                print(f"   📦 decoration 包含: {len(decoration)} 个子对象")
+                
+                # TracingTailPMobject 不能用 FadeIn，需要直接 add
+                anims.append(FadeIn(underline_ref, run_time=0.2))
+                anims.append(FadeIn(glow_dot, run_time=0.2))
+                # sweep_tail 在动画播放后添加
+                def add_sweep_tail_callback(scene=self, tail=sweep_tail):
+                    scene.add(tail)
+                # 先播放基础动画，然后添加 tail 并播放扫描动画
+            else:
+                print("⚠️ TracingTailPMobject 不可用，使用简单下划线")
+                sweep_tail = None
+                decoration = Group(underline_ref, glow_dot)
+            
+            anims.append(FadeIn(underline_ref, run_time=0.2))
+            anims.append(FadeIn(glow_dot, run_time=0.2))
+            
+            # 如果有 sweep_tail，需要在动画后手动添加
+            if _TRACING_TAIL_AVAILABLE and TracingTailPMobject is not None:
+                # 将 sweep_tail 存储以便在 play 后添加
+                self._pending_sweep_tail = sweep_tail
+            
+            anims.append(sweep_tracker.animate(run_time=run_time).set_value(1))
+            
+        elif effect == "indicate":
+            anims.append(Indicate(target, color=RED, scale_factor=1.5, run_time=run_time))
+            
+        elif effect == "focus":
+            anims.append(FocusOn(target, color=color, opacity=0.2, run_time=run_time))
+            
+        elif effect == "wave":
+            anims.append(ApplyWave(target, direction=UP, amplitude=0.15, run_time=run_time))
+            
+        elif effect == "flash":
+            anims.append(self._create_flash_animation(target, duration=run_time))
+            
+        elif effect == "circumscribe":
+            rect = SurroundingRectangle(target, color=color, stroke_width=3, buff=0.1)
+            anims.append(ShowPassingFlash(rect, run_time=run_time))
+            
+        elif effect == "grow":
+            wave_anim, decoration = self._create_growing_halo(target, color=color, duration=run_time)
+            anims.append(wave_anim)
+            
+        elif effect == "scan":
+            # 扫描矩形效果：从左到右填充的背景矩形
+            from manimlib import UpdateFromAlphaFunc
+            
+            # 七色轮询色盘
+            SCAN_COLORS = ["#FF6B6B", "#FFD93D", "#6BCB77", "#4D96FF", "#9B59B6", "#FF85C0", "#00D2D3"]
+            scan_color = SCAN_COLORS[self._glow_color_index % len(SCAN_COLORS)]
+            self._glow_color_index += 1
+            
+            # 获取目标边界（1.1倍大小）
+            scale_factor = 1.1
+            center = target.get_center()
+            obj_width = target.get_width() * scale_factor
+            obj_height = target.get_height() * scale_factor
+            left_x = center[0] - obj_width / 2
+            center_y = center[1]
+            
+            # 创建扫描矩形（初始宽度为0）
+            scan_rect = Rectangle(
+                width=0.001,  # 初始极小宽度
+                height=obj_height,
+                fill_color=scan_color,
+                fill_opacity=1.0,  # 完全不透明
+                stroke_width=0,
+            )
+            # 固定左边缘位置
+            scan_rect.move_to([left_x, center_y, 0], aligned_edge=LEFT)
+            
+            # 先添加扫描矩形，再重新添加目标确保在顶层
+            self.add(scan_rect)
+            self.bring_to_front(target)  # 将目标移到最前
+            
+            # 扫描动画更新器
+            def scan_updater(mob, alpha):
+                current_width = max(0.001, obj_width * alpha)
+                mob.stretch_to_fit_width(current_width)
+                mob.move_to([left_x, center_y, 0], aligned_edge=LEFT)
+            
+            decoration = scan_rect
+            # 先添加扫描动画，完成后等待0.5s再淡出
+            anims.append(UpdateFromAlphaFunc(scan_rect, scan_updater, run_time=run_time))
+            
+            # 存储待移除的矩形，在 highlight_text 中处理
+            self._pending_scan_rect = scan_rect
+            
+        return decoration, anims
+
     def highlight_text(self, target: "Mobject", effect: str = "random", 
                        color=YELLOW, run_time: float = 1.0,
                        max_duration: float = None) -> "Mobject":
         """
         高亮显示指定内容，支持多种随机效果
-        
-        装饰物会自动在 max_duration 秒后移除（默认 3 秒）
-        
-        Args:
-            target: 要高亮的目标对象 (Text/Tex 的子对象或任意 Mobject)
-            effect: 高亮效果，可选:
-                - "random": 随机选择一种效果
-                - "box": 辉光方框 (GlowSurroundingRect)
-                - "underline": 下划线
-                - "indicate": Indicate 缩放+变色
-                - "focus": FocusOn 聚光灯
-                - "wave": 波浪效果
-            color: 高亮颜色
-            run_time: 动画时长
-            max_duration: 装饰最大存留时间（默认使用 _highlight_max_duration）
-            
-        Returns:
-            创建的高亮装饰对象（如方框），便于后续移除；若为动画效果则返回 None
-            
-        示例:
-            # 高亮 Tex 中的特定部分
-            formula = Tex("E = mc^2")
-            self.highlight_text(formula[0][2:5], effect="box")
         """
-        # 先清理过期的高亮装饰
         self._cleanup_expired_highlights()
         
-        effects = ["box", "underline", "indicate", "focus", "wave"]
+        # 重置 pending sweep_tail
+        self._pending_sweep_tail = None
         
-        if effect == "random":
-            effect = random.choice(effects)
+        decoration, anims = self._add_highlight_animation(target, effect, color, run_time)
         
-        if self._debug_mode:
-            print(f"🎨 highlight_text: 使用效果 '{effect}'")
+        # 如果有待添加的 sweep_tail，先添加到场景（在 play 之前）
+        if hasattr(self, '_pending_sweep_tail') and self._pending_sweep_tail is not None:
+            self.add(self._pending_sweep_tail)
+            print("   🎯 已将 sweep_tail 添加到场景")
         
-        decoration = None
+        if anims:
+            self.play(*anims)
         
-        # 换行检测：如果目标宽度超过高度的 5 倍，可能是多行文本
-        width = target.get_width()
-        height = target.get_height()
-        is_multiline = height > 0 and width / height < 2  # 宽高比小于2可能是多行
+        # scan 效果完成后等待 0.5s 再移除
+        if hasattr(self, '_pending_scan_rect') and self._pending_scan_rect is not None:
+            self.wait(0.5)
+            self.play(FadeOut(self._pending_scan_rect), run_time=0.3)
+            self._pending_scan_rect = None
         
-        if effect == "box":
-            # 辉光方框效果
-            decoration = create_glow_surrounding_rect(
-                target, 
-                color=color, 
-                buff=0.1,
-                stroke_width=2,
-                fill_opacity=0.2,
-                n_glow_layers=4,
-                max_glow_width=10,
-                base_opacity=0.25,
-            )
-            self.play(FadeIn(decoration), run_time=run_time)
-            
-        elif effect == "underline":
-            # 下划线效果
-            decoration = Underline(target, color=color, stroke_width=3)
-            self.play(ShowCreation(decoration), run_time=run_time)
-            
-        elif effect == "indicate":
-            # Indicate 缩放+变色效果
-            self.play(Indicate(target, color=color, scale_factor=1.2), run_time=run_time)
-            
-        elif effect == "focus":
-            # 聚光灯效果
-            self.play(FocusOn(target, color=color, opacity=0.2), run_time=run_time)
-            
-        elif effect == "wave":
-            # 波浪效果
-            self.play(ApplyWave(target, direction=UP, amplitude=0.15), run_time=run_time)
-        
-        # 将装饰物加入自动清理追踪列表
         if decoration is not None:
             duration = max_duration if max_duration is not None else self._highlight_max_duration
             self._highlight_decorations.append({
@@ -2377,7 +2365,7 @@ class AutoScene(InteractiveScene):
                 "add_time": self._current_time,
                 "max_duration": duration
             })
-        
+            
         return decoration
     
     # ==================== 强调效果辅助方法 ====================
@@ -2385,22 +2373,18 @@ class AutoScene(InteractiveScene):
     def _create_flash_animation(self, target, color=YELLOW, n_cycles=1, duration=1.5):
         """
         创建颜色渐变闪烁动画：物体颜色平滑过渡 白->红->紫->白
-        
-        Args:
-            target: 目标对象
-            color: 未使用，保留兼容性
-            n_cycles: 颜色循环次数
-            duration: 动画时长
         """
-        from manimlib import Animation, interpolate_color
-        
         # 颜色渐变：白 -> 红 -> 紫 -> 白
-        GRADIENT_COLORS = [
-            "#FFFFFF",  # 白
-            "#FF4444",  # 红
-            "#AA44FF",  # 紫
-            "#FFFFFF",  # 白（回到原点）
-        ]
+        GRADIENT_COLORS = ["#FFFFFF", "#FF4444", "#AA44FF", "#FFFFFF"]
+        
+        from manimlib.utils.color import interpolate_color
+        
+        class ColorGradientAnimation(Write): # 使用 Write 作为基类可能不合适，这里改用 Animation 或 Transform
+            # 这里原本是 Animation，手动导入即可
+            pass
+        
+        # 为了简洁，这里直接使用 manimlib 的 Animation
+        from manimlib import Animation
         
         class ColorGradientAnimation(Animation):
             def __init__(self, mobject, n_cycles=1, **kwargs):
@@ -2440,17 +2424,8 @@ class AutoScene(InteractiveScene):
     def _create_growing_halo(self, target, color=YELLOW, n_rings=4, duration=1.5):
         """
         创建水波扩散动画：从目标向外扩散的波纹，带有宽度波动效果
-        
-        Args:
-            target: 目标对象
-            color: 光环颜色
-            n_rings: 光环层数
-            duration: 动画时长（默认1.5秒）
-        
-        Returns:
-            (animation, rings): 动画对象和圆环VGroup（用于后续清理）
         """
-        from manimlib import Animation, UpdateFromAlphaFunc
+        from manimlib import UpdateFromAlphaFunc
         
         center = target.get_center()
         width = target.get_width()
@@ -2831,6 +2806,30 @@ class AutoScene(InteractiveScene):
         
         # 箭头终点（空白区域）
         end_point = start_point + dir_vector * arrow_length
+        
+        # ========== 边界裁剪逻辑 ==========
+        # 预留安全边距，防止箭头和标注文字超出屏幕
+        safe_margin = 0.8  # 安全边距（为标注文字预留空间）
+        half_w = frame_width / 2 - safe_margin
+        half_h = frame_height / 2 - safe_margin
+        
+        # 裁剪终点坐标到安全区域
+        end_x = np.clip(end_point[0], -half_w, half_w)
+        end_y = np.clip(end_point[1], -half_h, half_h)
+        end_point = np.array([end_x, end_y, 0])
+        
+        # 如果裁剪后终点与起点太近，调整箭头长度
+        min_arrow_length = 0.5
+        actual_length = np.linalg.norm(end_point - start_point)
+        if actual_length < min_arrow_length:
+            # 缩短方向，但保持最小长度
+            direction_unit = (end_point - start_point) / max(actual_length, 0.01)
+            end_point = start_point + direction_unit * min_arrow_length
+            # 再次裁剪
+            end_x = np.clip(end_point[0], -half_w, half_w)
+            end_y = np.clip(end_point[1], -half_h, half_h)
+            end_point = np.array([end_x, end_y, 0])
+        # ========== 边界裁剪结束 ==========
         
         # 自动计算弯曲角度 - 增大曲率
         if curve_angle is None:
@@ -3694,7 +3693,7 @@ class AutoScene(InteractiveScene):
     def create_title_divider(
         self,
         title_text: str,
-        title_font: str = "STKaiti",
+        title_font: str = None,
         title_font_size: int = 24,
         title_color = None,
         divider_width: float = None,
@@ -3717,21 +3716,21 @@ class AutoScene(InteractiveScene):
             divider_color: 分割线颜色，默认 YELLOW
             use_glow_divider: 是否使用辉光分割线
             
-        Returns:
-            (title, divider) 元组，都已 fix_in_frame
         """
-        from manimlib import Text, Line, GREY, YELLOW, LEFT, RIGHT, UP, DOWN
-        
-        # 默认颜色
+        if title_color is None:
+            title_color = GREY
+        if divider_color is None:
+            divider_color = YELLOW
         if title_color is None:
             title_color = GREY
         if divider_color is None:
             divider_color = YELLOW
         
         # 创建标题
+        font = title_font if title_font else self.SUBTITLE_FONT
         title = Text(
             title_text, 
-            font=title_font,
+            font=font,
             font_size=title_font_size, 
             color=title_color
         )
@@ -3781,16 +3780,19 @@ class AutoScene(InteractiveScene):
         divider: "Mobject" = None,
         subtitle_top_y: float = None,
         align_left: bool = True,
+        scale_viz: bool = True,
+        viz_width_ratio: float = 0.88,
     ) -> dict:
         """
         均匀布局三个内容块（Problem/Viz/Derivation）
         
         算法：
-        1. top_y = divider.get_bottom()[1] - CONTENT_BUFF
-        2. bottom_y = subtitle_top_y + CONTENT_BUFF
-        3. 可用高度 H = top_y - bottom_y - 三块总高度
-        4. 间距 gap = H / 2（两个间隙）
-        5. 三块中心从上到下依次排列
+        1. 先对 viz 进行自适应缩放（scale_viz=True 时）
+        2. top_y = divider.get_bottom()[1] - CONTENT_BUFF
+        3. bottom_y = subtitle_top_y + CONTENT_BUFF
+        4. 可用高度 H = top_y - bottom_y - 三块总高度
+        5. 间距 gap = H / 2（两个间隙）
+        6. 三块中心从上到下依次排列
         
         Args:
             problem: 题目区域 Mobject
@@ -3799,11 +3801,17 @@ class AutoScene(InteractiveScene):
             divider: 分割线对象，用于获取顶部边界
             subtitle_top_y: 字幕顶部 Y 坐标，默认自动获取
             align_left: 是否左对齐
+            scale_viz: 是否自动将 viz 放大到屏幕宽度比例（默认 True）
+            viz_width_ratio: viz 目标宽度占屏幕比例（默认 0.88，即 88%）
             
         Returns:
-            dict: {"top_y", "bottom_y", "gap", "centers": [problem_y, viz_y, derivation_y]}
+            dict: {"top_y", "bottom_y", "gap", "centers": [problem_y, viz_y, derivation_y], "mode"}
         """
         from manimlib import LEFT
+        
+        # 【新增】自动缩放可视化区域到指定宽度比例
+        if scale_viz:
+            self.scale_viz_to_fit(viz, width_ratio=viz_width_ratio)
         
         # 获取上边界
         if divider is not None:
@@ -3940,6 +3948,39 @@ class AutoScene(InteractiveScene):
         
         return current_y
     
+    def scale_viz_to_fit(
+        self,
+        viz: "Mobject",
+        width_ratio: float = 0.88,
+    ) -> "Mobject":
+        """
+        将可视化区域放大到指定屏幕宽度比例（保持原有形状）
+        
+        Args:
+            viz: 可视化区域 Mobject
+            width_ratio: 目标宽度占屏幕比例 (0.0-1.0)，默认 0.88 (88%)
+            
+        Returns:
+            缩放后的 Mobject
+            
+        示例:
+            viz = self._create_viz_content()
+            self.scale_viz_to_fit(viz, width_ratio=0.88)
+        """
+        frame_width = self.camera.frame.get_width()
+        target_width = frame_width * width_ratio
+        current_width = viz.get_width()
+        
+        if current_width > 0:
+            scale_factor = target_width / current_width
+            viz.scale(scale_factor)
+            
+            if self._debug_mode:
+                print(f"📏 scale_viz_to_fit: {current_width:.2f} -> {target_width:.2f} "
+                      f"(scale={scale_factor:.2f}, ratio={width_ratio*100:.0f}%)")
+        
+        return viz
+    
     # ==================== 相机聚焦方法 ====================
 
     
@@ -3988,38 +4029,6 @@ class AutoScene(InteractiveScene):
             print(f"📷 camera_focus: 已恢复原始视角")
     
     # ==================== 固定方向元素方法 ====================
-    
-    def add_fixed_subtitle(self, text: str, color_map: dict = None, 
-                           position=DOWN, edge_buff: float = None) -> VGroup:
-        """
-        添加固定在屏幕上的字幕（使用 fix_in_frame）
-        
-        适用于：标题、题目、推导过程、字幕、字幕背景
-        这些元素不随相机移动，始终固定在屏幕位置
-        
-        Args:
-            text: 字幕文本
-            color_map: 着色映射
-            position: 位置 (DOWN/UP/LEFT/RIGHT)
-            edge_buff: 边距，None 使用默认值
-            
-        Returns:
-            VGroup: 固定的字幕组 [背景, 文字]
-        """
-        # 使用现有的 make_subtitle 创建字幕
-        subtitle_group = self.make_subtitle(text, color_map)
-        
-        # 调整位置
-        buff = edge_buff if edge_buff is not None else self._subtitle_edge_buff
-        subtitle_group.to_edge(position, buff=buff)
-        
-        # 固定在屏幕上
-        subtitle_group.fix_in_frame()
-        
-        if self._debug_mode:
-            print(f"📌 add_fixed_subtitle: '{text[:20]}...' 已固定")
-        
-        return subtitle_group
     
     def add_fixed_title(self, text: str, font_size: int = 36, 
                         color=WHITE, position=UP, edge_buff: float = 0.5) -> Text:
@@ -4201,8 +4210,6 @@ class AutoScene(InteractiveScene):
         Returns:
             Tex: 固定的公式
         """
-        from manimlib import Tex
-        
         formula = Tex(tex_string, font_size=font_size)
         
         if coords is not None:
@@ -4294,53 +4301,6 @@ class AutoScene(InteractiveScene):
             tip_at_start=tip_at_start,
         )
     
-    def create_glow_box(
-        self,
-        mobject,
-        color=YELLOW,
-        buff=0.15,
-        stroke_width=3,
-        glow_color=None,
-        n_glow_layers=None,
-        max_glow_width=None,
-        base_opacity=None,
-    ):
-        """
-        创建辉光环绕框 - 便捷方法，使用类配置的默认值
-        
-        Args:
-            mobject: 要环绕的对象
-            color: 边框颜色
-            buff: 边距
-            stroke_width: 线条宽度
-            glow_color: 辉光颜色
-            n_glow_layers: 辉光层数
-            max_glow_width: 最外层辉光宽度
-            base_opacity: 辉光透明度
-            
-        Returns:
-            VGroup: 辉光环绕框组
-        """
-        if n_glow_layers is None:
-            n_glow_layers = self.GLOW_N_LAYERS
-        if max_glow_width is None:
-            max_glow_width = stroke_width * self.GLOW_MAX_WIDTH_MULT
-        if base_opacity is None:
-            base_opacity = self.GLOW_BASE_OPACITY
-        if glow_color is None:
-            glow_color = color
-        
-        return create_glow_surrounding_rect(
-            mobject,
-            color=color,
-            buff=buff,
-            stroke_width=stroke_width,
-            glow_color=glow_color,
-            n_glow_layers=n_glow_layers,
-            max_glow_width=max_glow_width,
-            base_opacity=base_opacity,
-        )
-    
     # ========================================================================
     # 辉光下划线
     # ========================================================================
@@ -4378,15 +4338,12 @@ class AutoScene(InteractiveScene):
             # 下划线自动定位在 title 下方
         """
         try:
-            shaderscene_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "shaderscene")
-            if shaderscene_path not in sys.path:
-                sys.path.insert(0, shaderscene_path)
             from mobject.glow_line import GlowLine
+            use_glow = True
         except ImportError:
             if self._debug_mode:
                 print("⚠️ GlowLine 导入失败，返回普通 Line")
-            # 回退到普通 Line
-            from manimlib import Line
+            use_glow = False
             obj_height = mobject.get_height()
             offset = obj_height * offset_ratio
             start = mobject.get_left() + DOWN * offset
@@ -4432,8 +4389,8 @@ class AutoScene(InteractiveScene):
                 pass
         
         if self._debug_mode:
-            print(f"✨ create_glow_underline: offset_ratio={offset_ratio}, width_ratio={width_ratio}")
-        
+            print(f"✨ create_glow_underline: use_glow={use_glow}")
+            
         return underline
     
     # ========================================================================
@@ -4472,11 +4429,8 @@ class AutoScene(InteractiveScene):
         Returns:
             Group: 包含辉光层和文字的组合
         """
-        # 延迟导入 GlowWrapperEffect
+        # 尝试使用 GlowWrapperEffect
         try:
-            shaderscene_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "shaderscene")
-            if shaderscene_path not in sys.path:
-                sys.path.insert(0, shaderscene_path)
             from mobject.glow_wrapper import GlowWrapperEffect
         except ImportError:
             # 如果导入失败，返回普通文字
@@ -4497,11 +4451,8 @@ class AutoScene(InteractiveScene):
         text_font = font or self.SUBTITLE_FONT
         text_obj = Text(text, font=text_font, font_size=font_size, color=color)
         
-        # 辉光颜色：如果未指定，使用轮询色盘（非白色）
-        if glow_color is None:
-            actual_glow_color = color  # 与文字颜色相同
-        else:
-            actual_glow_color = glow_color
+        # 辉光颜色
+        actual_glow_color = glow_color if glow_color else color
         
         # 创建辉光
         glow = GlowWrapperEffect(
@@ -4792,63 +4743,91 @@ class AutoScene(InteractiveScene):
         
         return circle
     
-    def add_glow_to_curve(
-        self,
-        vmobject,
-        color=None,
-        glow_width: float = 0.1,
-        pulse: bool = False,
-        pulse_frequency: float = 1.0,
-        pulse_amplitude: float = 0.4,
-    ):
-        """
-        为现有 VMobject (Line, Circle, FunctionGraph等) 添加辉光效果
-        
-        通过采样 VMobject 的轮廓创建辉光覆盖层
-        
-        Args:
-            vmobject: 要添加辉光的曲线对象
-            color: 辉光颜色 (默认使用曲线自身颜色)
-            glow_width: 辉光宽度
-            pulse: 是否启用脉冲
-            pulse_frequency: 脉冲频率
-            pulse_amplitude: 脉冲振幅
-            
-        Returns:
-            Group: 包含辉光和原曲线的组合
-        """
-        try:
-            shaderscene_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "shaderscene")
-            if shaderscene_path not in sys.path:
-                sys.path.insert(0, shaderscene_path)
-            from mobject.glow_wrapper import GlowWrapperEffect
-        except ImportError:
-            if self._debug_mode:
-                print("⚠️ GlowWrapperEffect 导入失败")
-            return vmobject
-        
-        from manimlib import Group
-        
-        # 使用曲线自身颜色
-        glow_color = color if color is not None else vmobject.get_color()
-        
-        glow = GlowWrapperEffect(
-            vmobject,
-            color=glow_color,
-            size=glow_width,
-            glow_factor=2.5,
-            alpha=0.5,
-            render_mode="line",
-            curve_sample_factor=50,
-        )
-        glow.deactivate_depth_test()
-        
-        result = Group(glow, vmobject)
-        
         if self._debug_mode:
             print(f"✨ add_glow_to_curve: pulse={pulse}")
         
         return result
+
+    # ==================== 3D 固定方向标注方法 (原 Mixin) ====================
+
+    def add_fixed_annotation(self, target: "Mobject", label_text: str,
+                             direction=UP, buff: float = 0.2,
+                             font_size: int = 20, color=WHITE) -> Text:
+        """
+        为 3D 可视化中的对象添加始终面向相机的标注
+        
+        标注会跟随 target 的位置，但始终面向观众
+        
+        Args:
+            target: 目标对象（通常是 3D 图形中的元素）
+            label_text: 标注文本
+            direction: 标注相对于目标的方向
+            buff: 标注与目标的距离
+            font_size: 字号
+            color: 颜色
+            
+        Returns:
+            Text: 带有 updater 的标注文本
+        """
+        # 计算标注位置
+        offset = direction * buff
+        original_pos = target.get_center() + offset
+        
+        # 创建标注
+        label = Text(
+            label_text,
+            font=self.SUBTITLE_FONT,
+            font_size=font_size,
+            color=color
+        ).move_to(original_pos)
+        
+        # 添加固定方向 updater
+        label.add_updater(
+            make_fixed_orientation_updater(original_pos, self.camera.frame)
+        )
+        
+        return label
+    
+    def add_fixed_annotation_dynamic(self, target: "Mobject", label_text: str,
+                                      direction=UP, buff: float = 0.2,
+                                      font_size: int = 20, color=WHITE) -> Text:
+        """
+        为移动中的 3D 对象添加动态跟随的固定方向标注
+        
+        与 add_fixed_annotation 不同，此方法的标注会实时跟随 target 移动
+        
+        Args:
+            target: 目标对象
+            label_text: 标注文本
+            direction: 标注方向
+            buff: 距离
+            font_size: 字号
+            color: 颜色
+            
+        Returns:
+            Text: 带有动态 updater 的标注
+        """
+        label = Text(
+            label_text,
+            font=self.SUBTITLE_FONT,
+            font_size=font_size,
+            color=color
+        )
+        
+        camera_frame = self.camera.frame
+        
+        def dynamic_updater(obj, dt):
+            # 实时计算目标位置
+            current_pos = target.get_center() + direction * buff
+            new_pos = camera_frame.to_fixed_frame_point(current_pos)
+            obj.fix_in_frame()
+            new_pos[2] = 0
+            obj.move_to(new_pos)
+            return obj
+        
+        label.add_updater(dynamic_updater)
+        
+        return label
 
 def make_fixed_orientation_updater(original_pos, camera_frame):
     """
@@ -4883,95 +4862,9 @@ def make_fixed_orientation_updater(original_pos, camera_frame):
     return updater
 
 
-class AutoSceneEnhancementMixin:
-    """
-    增强功能混入类，用于 3D 场景中的固定方向标注
-    
-    可以单独混入到任何 Scene 子类中使用
-    """
-    
-    def add_fixed_annotation(self, target: "Mobject", label_text: str,
-                             direction=UP, buff: float = 0.2,
-                             font_size: int = 20, color=WHITE) -> Text:
-        """
-        为 3D 可视化中的对象添加始终面向相机的标注
-        
-        标注会跟随 target 的位置，但始终面向观众
-        
-        Args:
-            target: 目标对象（通常是 3D 图形中的元素）
-            label_text: 标注文本
-            direction: 标注相对于目标的方向
-            buff: 标注与目标的距离
-            font_size: 字号
-            color: 颜色
-            
-        Returns:
-            Text: 带有 updater 的标注文本
-        """
-        # 计算标注位置
-        offset = direction * buff
-        original_pos = target.get_center() + offset
-        
-        # 创建标注
-        label = Text(
-            label_text,
-            font="STKaiti",
-            font_size=font_size,
-            color=color
-        ).move_to(original_pos)
-        
-        # 添加固定方向 updater
-        label.add_updater(
-            make_fixed_orientation_updater(original_pos, self.camera.frame)
-        )
-        
-        return label
-    
-    def add_fixed_annotation_dynamic(self, target: "Mobject", label_text: str,
-                                      direction=UP, buff: float = 0.2,
-                                      font_size: int = 20, color=WHITE) -> Text:
-        """
-        为移动中的 3D 对象添加动态跟随的固定方向标注
-        
-        与 add_fixed_annotation 不同，此方法的标注会实时跟随 target 移动
-        
-        Args:
-            target: 目标对象
-            label_text: 标注文本
-            direction: 标注方向
-            buff: 距离
-            font_size: 字号
-            color: 颜色
-            
-        Returns:
-            Text: 带有动态 updater 的标注
-        """
-        label = Text(
-            label_text,
-            font="STKaiti",
-            font_size=font_size,
-            color=color
-        )
-        
-        camera_frame = self.camera.frame
-        
-        def dynamic_updater(obj, dt):
-            # 实时计算目标位置
-            current_pos = target.get_center() + direction * buff
-            new_pos = camera_frame.to_fixed_frame_point(current_pos)
-            obj.fix_in_frame()
-            new_pos[2] = 0
-            obj.move_to(new_pos)
-            return obj
-        
-        label.add_updater(dynamic_updater)
-        
-        return label
 
 
 
 
-# 将 Mixin 方法添加到 AutoScene
-AutoScene.add_fixed_annotation = AutoSceneEnhancementMixin.add_fixed_annotation
-AutoScene.add_fixed_annotation_dynamic = AutoSceneEnhancementMixin.add_fixed_annotation_dynamic
+
+
