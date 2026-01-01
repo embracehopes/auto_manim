@@ -96,7 +96,7 @@ class VectorRangeDemo(AutoScene):
         self.play(ShowCreation(underline), run_time=0.5)
         
         # 开场配音 + 高亮标题
-        self.speak_with_highlight(
+        self.speak(
             "大家好，今天我们来分析一道向量取值范围问题",
             targets=[title]
         )
@@ -137,12 +137,12 @@ class VectorRangeDemo(AutoScene):
         self.play(FadeIn(options), run_time=0.5)
         
         # 语音讲解 + 高亮
-        self.speak_with_highlight(
+        self.speak(
             "题目给出 OA、OB 长度都是根号2，AB 等于2",
             targets=[problem_line2]
         )
         
-        self.speak_with_highlight(
+        self.speak(
             "C 点坐标是 (3,4)，求向量表达式的取值范围",
             targets=[problem_text[3], options]
         )
@@ -170,7 +170,7 @@ class VectorRangeDemo(AutoScene):
         self.play(Write(x_label), Write(y_label), Write(origin_label), run_time=0.5)
         
         # 语音 + 高亮坐标系
-        self.speak_with_highlight(
+        self.speak(
             "首先，我们来分析已知条件的几何含义",
             targets=[axes]
         )
@@ -188,7 +188,7 @@ class VectorRangeDemo(AutoScene):
         self.play(Write(circle_label), run_time=0.5)
         
         # 语音 + 高亮圆
-        self.speak_with_highlight(
+        self.speak(
             "由于 OA 和 OB 长度相等，A、B 都在以 O 为圆心的圆上",
             targets=[circle, circle_label]
         )
@@ -226,7 +226,7 @@ class VectorRangeDemo(AutoScene):
         )
         
         # 语音 + 高亮向量
-        self.speak_with_highlight(
+        self.speak(
             "由勾股定理可知 OA 和 OB 垂直，夹角为90度",
             targets=[vec_oa, vec_ob]
         )
@@ -289,7 +289,7 @@ class VectorRangeDemo(AutoScene):
         self.play(Write(step1), run_time=1.5)
         self.play(Write(step2), run_time=1)
         
-        self.speak_with_highlight(
+        self.speak(
             "设 M 为 OA 加 OB 的终点，M 在以 O 为圆心的圆上",
             targets=[step2]
         )
@@ -297,21 +297,21 @@ class VectorRangeDemo(AutoScene):
         self.play(Write(step3), run_time=1)
         self.play(Write(step4), run_time=1)
         
-        self.speak_with_highlight(
+        self.speak(
             "OC 的模长是 5，所以 2 OC 的模长是 10",
             targets=[step4]
         )
         
         self.play(Write(step5), run_time=1)
         
-        self.speak_with_highlight(
+        self.speak(
             "因此结果的范围是 10 减去 2 根号 2 到 10 加 2 根号 2",
             targets=[step5]
         )
         
         self.play(Write(result), run_time=1.5)
         
-        self.speak_with_highlight(
+        self.speak(
             "约等于 7.17 到 12.83，所以答案选 B",
             targets=[result]
         )

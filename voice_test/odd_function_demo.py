@@ -196,7 +196,7 @@ class OddFunctionDemo(AutoScene):
         self.play(Write(problem_tex), rate_func=smooth, run_time=1)
         self.play(Write(line2), rate_func=smooth, run_time=0.8)
         
-        self.speak_with_highlight(
+        self.speak(
             text="f x 是奇函数，坐标 2 4 在图像上",
             subtitle="f(x) 是奇函数，坐标 (2,4) 在图像上",
             targets=[line2]
@@ -223,7 +223,7 @@ class OddFunctionDemo(AutoScene):
         
         self.play(FadeIn(questions), rate_func=smooth, run_time=0.8)
         
-        self.speak_with_highlight(
+        self.speak(
             text="当 x 小于 0 时，f x 等于 x 平方加 b x",
             subtitle="当 x < 0 时，f(x) = x² + bx",
             targets=[line3]
@@ -359,7 +359,7 @@ class OddFunctionDemo(AutoScene):
             run_time=1
         )
         
-        self.speak_with_highlight(
+        self.speak(
             text="当 b 等于 4 时，坐标 2 4 和 负 2 负 4 关于原点对称",
             subtitle="当 b = 4 时，(2,4) 和 (-2,-4) 关于原点对称",
             targets=[point_24_label, point_n2n4_label]
@@ -644,7 +644,7 @@ class OddFunctionDemo(AutoScene):
                 arrow_color=self.ANSWER_COLOR,
             )
 
-            self.speak_with_highlight(
+            self.speak(
                 "在图上就是这个点",
                 targets=[focus_target]
             )
