@@ -442,11 +442,12 @@ def add_dynamic_indicator(self, viz_group, t_start, t_end):
 # 方式 1：speak() 自动配音 + 字幕
 duration = self.speak("欢迎观看本视频")
 
-# 方式 2：speak_with_highlight() 配音 + 高亮
-self.speak_with_highlight(
+# 方式 2：speak() 配音 + 高亮（使用 targets 参数）
+# 注：原 speak_with_highlight 已弃用
+self.speak(
     text="看这个公式",
     subtitle="看这个公式",
-    targets=[formula],
+    targets=[formula],  # 高亮对象列表
     color_map={"公式": YELLOW}
 )
 
@@ -486,8 +487,8 @@ self.set_subtitle_style(
 self.speak("接下来看公式")
 self.play(Write(formula))
 
-# 或并行出现
-self.speak_with_highlight("看这个公式", targets=[formula])
+# 或并行出现（使用 targets 参数）
+self.speak("看这个公式", targets=[formula])
 ```
 
 ---
@@ -1121,7 +1122,7 @@ manimgl script.py SceneName --resolution 480x854
 | 方法 | 用途 |
 |------|------|
 | `speak(text)` | 配音 + 字幕 |
-| `speak_with_highlight(text, targets)` | 配音 + 高亮 |
+| `speak_with_highlight(text, targets)` | 配音 + 高亮（⚠️已弃用，使用 `speak(text, targets)` 代替） |
 | `focus_guide(targets)` | 方框引导 |
 | `focus_guide_with_camera(targets)` | 方框 + 相机 |
 | `camera_focus(target)` | 相机聚焦 |

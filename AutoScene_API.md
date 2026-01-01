@@ -80,45 +80,46 @@ event = {
 
 ## 语音配音 API
 
-### `speak(text, color_map=None, min_duration=2.0) -> float`
+### `speak(text, targets=None, subtitle=None, color_map=None, min_duration=2.0) -> float`
 
-**最常用！** 自动生成配音并显示字幕
+**最常用！** 自动生成配音+字幕+高亮（统一 API）
+
+> ⚠️ **注意**：原 `speak_with_highlight` 已弃用，使用 `speak(..., targets=[obj])` 替代
 
 ```python
 # 基础用法
 self.speak("这是一段配音文字")
 
+# 配音与字幕分离
+self.speak(
+    text="由 f 2 等于 4",           # TTS 读这个
+    subtitle="由 f(2) = 4",          # 屏幕显示这个
+)
+
 # 带关键词高亮
 self.speak("重点是向量加法", color_map={"重点": YELLOW, "向量加法": RED})
+
+# 配音时高亮指定对象（替代原 speak_with_highlight）
+formula = Tex("E = mc^2")
+self.add(formula)
+self.speak(
+    text="这是著名的质能方程",
+    targets=[formula],              # 高亮对象列表
+    color_map={"质能方程": YELLOW}
+)
 
 # 返回值是实际使用的时长
 duration = self.speak("这句话")
 ```
 
 **参数：**
-- `text`: 配音文本
+- `text`: 配音文本（TTS 朗读，口语化中文）
+- `targets`: 要高亮的对象列表（可选）
+- `subtitle`: 字幕文本（屏幕显示），如果为 None 则使用 text
 - `color_map`: 关键词着色字典 `{"关键词": 颜色}`
 - `min_duration`: 最小显示时长（默认 2.0 秒）
 
 **返回：** 实际使用的时长（秒）
-
----
-
-### `speak_with_highlight(text, targets=None, color_map=None, min_duration=2.0) -> float`
-
-配音的同时高亮指定对象
-
-```python
-formula = Tex("E = mc^2")
-self.add(formula)
-
-# 说话时高亮公式
-self.speak_with_highlight(
-    "这是著名的质能方程",
-    targets=[formula],
-    color_map={"质能方程": YELLOW}
-)
-```
 
 ---
 
@@ -695,9 +696,9 @@ class TeachingDemo(AutoScene):
         formula = Tex(r"\vec{a} + \vec{b} = \vec{c}")
         self.play(Write(formula))
         
-        # 带高亮的讲解
-        self.speak_with_highlight(
-            "这是向量加法的基本形式",
+        # 带高亮的讲解（使用 speak 的 targets 参数）
+        self.speak(
+            text="这是向量加法的基本形式",
             targets=[formula],
             color_map={"向量加法": YELLOW}
         )

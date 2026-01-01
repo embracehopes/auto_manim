@@ -44,8 +44,8 @@
 
 ### 1.1 配音与字幕
 
-- `speak(text, subtitle=None, color_map=None, min_duration=2.0) -> float`：自动配音+字幕（支持分离）
-- `speak_with_highlight(text, targets=None, subtitle=None, color_map=None, min_duration=2.0) -> float`：配音+字幕+高亮
+- `speak(text, targets=None, subtitle=None, color_map=None, min_duration=2.0) -> float`：自动配音+字幕+高亮（统一 API）
+  - **注**：原 `speak_with_highlight` 已弃用，使用 `speak(..., targets=[obj1, obj2])` 替代
 - `speak_sequence(texts, min_duration=2.0)`
 - `run_timeline(events, generate_voice=None)`
 - `make_subtitle(text, color_map=None) -> VGroup`：背景+文字，默认 fix_in_frame
@@ -744,7 +744,8 @@ self.play(FadeIn(point_bg), Write(point_label))
 JSON：<粘贴 timeline JSON>
 
 【配音与字幕分离规范】
-- speak()/speak_with_highlight() 或 subtitle 管线；text 作为口语化 TTS 文稿、subtitle 作为数学化上屏
+- `speak()` 或 `subtitle` 管线；`text` 作为口语化 TTS 文稿、`subtitle` 作为数学化上屏
+- **高亮**：使用 `speak(..., targets=[obj])` 参数实现配音时高亮
 - 字幕动画：第一句 Write，后续 Transform 上一句 → 下一句
 - 常见映射：
   - 坐标：text="坐标 2 4"，subtitle="(2, 4)"

@@ -442,9 +442,12 @@ if mobject.get_width() > SCREEN_WIDTH:
 
 ## ⚠️ 配音与字幕分离（重要）
 
-`speak()` 和 `speak_with_highlight()` 支持**配音和字幕分离**：
+`speak()` 支持**配音+字幕+高亮**（统一 API）：
 - `text`: 配音文稿（TTS 朗读，口语化中文）
 - `subtitle`: 字幕文本（屏幕显示，可用符号）
+- `targets`: 要高亮的对象列表（可选）
+
+> ⚠️ **注意**：原 `speak_with_highlight` 已弃用，使用 `speak(..., targets=[obj])` 替代
 
 ### 转换规则
 
@@ -475,11 +478,11 @@ self.speak(
     color_map={"-4": YELLOW}
 )
 
-# 带高亮的配音
-self.speak_with_highlight(
+# 带高亮的配音（使用 targets 参数）
+self.speak(
     text="利用奇函数性质，f 负 2 等于 负 4",
     subtitle="利用奇函数性质，f(-2) = -4",
-    targets=[formula],
+    targets=[formula],  # 高亮对象列表
 )
 ```
 
